@@ -1,5 +1,6 @@
-import requests, os
+import requests, os, textwrap
 from bs4 import BeautifulSoup
+from collections import OrderedDict
 
 sources = [('https://www.felixcloutier.com/x86/jcc', '', 'rel8'),
            #('https://www.felixcloutier.com/x86/cmovcc', 'REX.W + ', ''),
@@ -24,21 +25,27 @@ for source, startswith, endswith in sources:
     commonprefix = os.path.commonprefix([i[1] for i in instructions])
     for opcode, inst in instructions:
         cc = inst.split(' ')[0][len(commonprefix):]
-        if inst[len(commonprefix)] == 'N':
-            found = None
+        found = None
+
+        if cc[0] == 'N' and cc not in ('NP', 'NC'):
             for i in instructions:
                 if i[0] == opcode and i[1][len(commonprefix)] != 'N':
-                    found = i[1].split(' ')[0][len(commonprefix):]
+                    found = i[1].split(' ')[0][len(commonprefix):] # there is an instruction with the same opcode, but without N
                     break
-            if found is not None:
-                print(inst, found)
-                ambiguous_cc.add((cc, found))
-                continue # there is an instruction with the same opcode, but without N
-        unambiguous_cc.add(cc)
+        elif cc == 'PE':
+            found = 'P'
+        elif cc == 'PO':
+            found = 'NP'
+
+        if found is not None:
+            ambiguous_cc.add((cc, found))
+        else:
+            unambiguous_cc.add(cc)
 
 # Assign symbolic designation to each condition code
-cc_to_sym = {}
-for cc in unambiguous_cc:
+cc_to_sym = OrderedDict()
+sym_used = set()
+for cc in sorted(unambiguous_cc):
     if cc[0] in 'ABGL':
         sym = 'u' * (cc[0] in 'AB') + ('>' if cc[0] in 'AG' else '<')
         if cc[1:] == 'E':
@@ -51,8 +58,6 @@ for cc in unambiguous_cc:
         sym = '!='
     elif cc.endswith('CXZ'):
         sym = cc[:-1] + ' == 0'
-    elif cc == 'PO':
-        sym = 'P'
     elif cc[-1] in 'OCZSP':
         if cc[0] == 'N':
             assert(len(cc) == 2)
@@ -60,7 +65,20 @@ for cc in unambiguous_cc:
         else:
             assert len(cc) == 1, cc
             sym = cc[0]
+    else:
+        assert False, sym
+
+    assert sym not in sym_used, sym
+    sym_used.add(sym)
+
     cc_to_sym[cc] = sym
 
-print('cc_to_sym =', repr(cc_to_sym).lower())
+acc_to_sym = OrderedDict()
+for cc, dcc in sorted(ambiguous_cc):
+    acc_to_sym[cc] = cc_to_sym[dcc]
+
+print(textwrap.fill('cc_to_sym = ' + repr(cc_to_sym)[12:-1].lower()))
+print()
+print(textwrap.fill('cc_to_sym.update' + repr(acc_to_sym)[11:].lower()))
+
 # >[https://www.felixcloutier.com/x86/setcc]:‘Appendix B, “EFLAGS Condition Codes,” in the Intel® 64 and IA-32 Architectures Software Developer’s Manual, Volume 1, shows the alternate mnemonics for various test conditions.’
