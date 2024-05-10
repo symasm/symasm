@@ -19,6 +19,7 @@ class Token:
         INNER_OPERATOR = 2
         DELIMITER = 3
         NUMERIC_LITERAL = 4
+        NEWLINE = 5
 
     start: int
     end: int
@@ -30,6 +31,9 @@ class Token:
         self.end = end
         self.category = category
         self.string = source[start:end]
+
+    def __str__(self):
+        return 'Token(' + str(self.category) + ', "' + self.string + '")'
 
 class Error:
     message: str
@@ -53,12 +57,15 @@ def tokenize(source, errors: list):
     i = 0
     while i < len(source):
         ch = source[i]
-        if ch in " \t\r\n":
+        if ch in " \t":
             i += 1 # just skip whitespace characters
+        elif ch == "\n":
+            tokens.append(Token(i, i + 1, Token.Category.NEWLINE, source))
+            i += 1
         elif ch == ';':
             comment_start = i
             i += 1
-            while i < len(source) and source[i] not in "\r\n":
+            while i < len(source) and source[i] not in "\n":
                 i += 1
             # if comments is not None:
             #     comments.append((comment_start, i))
@@ -72,7 +79,7 @@ def tokenize(source, errors: list):
 
             lexem_start = i
             i += 1
-            category : Token.Category
+            category: Token.Category
 
             if primary_operator != '':
                 i = lexem_start + len(primary_operator)
@@ -184,7 +191,7 @@ Options:
             break
         i += 1
     args_outfile = sys.stdout
-    outfile_name : str
+    outfile_name: str
     try:
         if '-f' in sys.argv:
             outfile_name = sys.argv[sys.argv.index('-f')     + 1]
@@ -195,7 +202,7 @@ Options:
     except:
         sys.exit("Can't open file '" + outfile_name + "' for writing")
 
-    infile_str : str
+    infile_str: str
     try:
         infile_str = args_infile.read()
     except UnicodeDecodeError:
@@ -203,3 +210,6 @@ Options:
 
     lang = detect_input_language(infile_str)
     print(lang)
+    errors: List[Error] = []
+    for token in tokenize(infile_str, errors):
+        print(token)
