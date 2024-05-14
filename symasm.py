@@ -65,7 +65,7 @@ def tokenize(source, errors: list):
         elif ch == ';':
             comment_start = i
             i += 1
-            while i < len(source) and source[i] not in "\n":
+            while i < len(source) and source[i] != "\n":
                 i += 1
             # if comments is not None:
             #     comments.append((comment_start, i))
@@ -91,7 +91,7 @@ def tokenize(source, errors: list):
             elif ch.isalpha() or ch in '_.': # this is NAME/IDENTIFIER
                 while i < len(source):
                     ch = source[i]
-                    if not (ch.isalpha() or ch in '_.' or '0' <= ch <= '9'):
+                    if not (ch.isalpha() or ch in '_.@' or '0' <= ch <= '9'):
                         break
                     i += 1
                 category = Token.Category.NAME
@@ -138,7 +138,8 @@ def detect_input_language(source):
         tokens = tokenize(line, errors)
 
         if len(tokens) >= 2 and tokens[-1].category == Token.Category.NAME and tokens[-2].string == ':': # symasm branch instruction (conditional or unconditional)
-            return 'symasm'
+            if not (len(tokens) > 4 and tokens[-3].string.lower() in ('fs', 'gs') and tokens[-4].string.lower() == 'ptr'): # support thread_local variables
+                return 'symasm'
 
         for token in tokens:
             if token.category == Token.Category.PRIMARY_OPERATOR:
