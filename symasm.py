@@ -17,10 +17,11 @@ class Token:
         NAME = 0 # or IDENTIFIER
         PRIMARY_OPERATOR = 1
         INNER_OPERATOR = 2
-        DELIMITER = 3
-        NUMERIC_LITERAL = 4
-        NEWLINE = 5
-        COMMENT = 6
+        CONDITIONAL_OPERATOR = 3
+        DELIMITER = 4
+        NUMERIC_LITERAL = 5
+        NEWLINE = 6
+        COMMENT = 7
 
     start: int
     end: int
@@ -203,7 +204,11 @@ def translate_masm_to_symasm(tokens, source):
         if len(line) == 0:
             break
         next_line = lines.next_line()
-    
+
+        if line[-1].string == ':': # this is a label
+            res += op_str(line) + "\n"
+            continue
+
         mnem = line[0].string.lower()
 
         operands: List[List[Token]] = []
@@ -231,6 +236,14 @@ def translate_masm_to_symasm(tokens, source):
 
         elif mnem == 'cmp':
             assert(len(operands) == 2)
+
+            if len(next_line) > 0:
+                next_mnem = next_line[0].string.lower()
+                if next_mnem.startswith('j') and next_mnem[1:] in cc_to_sym:
+                    res += op_str(operands[0]) + ' ' + cc_to_sym[next_mnem[1:]] + ' ' + op_str(operands[1]) + ' : ' + op_str(next_line[1:]) + "\n"
+                    next_line = lines.next_line()
+                    continue
+
             res += op_str(operands[0]) + ' <=> ' + op_str(operands[1])
 
         elif mnem.startswith('set') and mnem[3:] in cc_to_sym:
@@ -240,6 +253,10 @@ def translate_masm_to_symasm(tokens, source):
         elif mnem.startswith('cmov') and mnem[4:] in cc_to_sym:
             assert(len(operands) == 2)
             res += op_str(operands[0]) + ' = ' + op_str(operands[1]) + ' if ' + cc_to_sym[mnem[4:]]
+
+        elif mnem.startswith('j') and mnem[1:] in cc_to_sym:
+            assert(len(operands) == 1)
+            res += cc_to_sym[mnem[1:]] + ' : ' + op_str(operands[0])
 
         else:
             res += op_str(line)
