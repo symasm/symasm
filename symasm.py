@@ -197,7 +197,7 @@ def translate_masm_to_symasm(tokens, source):
 
     def op_str(toks):
         return source[toks[0].start : toks[-1].end]
-    res = ''
+    res: List[Tuple[List[Token], str]] = []
 
     while True:
         line = next_line
@@ -206,7 +206,7 @@ def translate_masm_to_symasm(tokens, source):
         next_line = lines.next_line()
 
         if line[-1].string == ':': # this is a label
-            res += op_str(line) + "\n"
+            res.append((line, ''))
             continue
 
         mnem = line[0].string.lower()
@@ -223,16 +223,16 @@ def translate_masm_to_symasm(tokens, source):
 
         if mnem == 'mov':
             assert(len(operands) == 2)
-            res += op_str(operands[0]) + ' = ' + op_str(operands[1])
+            res.append((line, op_str(operands[0]) + ' = ' + op_str(operands[1])))
 
         elif mnem == 'xor':
             assert(len(operands) == 2)
             op1 = op_str(operands[0])
             op2 = op_str(operands[1])
             if op1 == op2:
-                res += op1 + ' = 0'
+                res.append((line, op1 + ' = 0'))
             else:
-                res += op1 + ' (+)= ' + op2
+                res.append((line, op1 + ' (+)= ' + op2))
 
         elif mnem == 'cmp':
             assert(len(operands) == 2)
@@ -240,28 +240,27 @@ def translate_masm_to_symasm(tokens, source):
             if len(next_line) > 0:
                 next_mnem = next_line[0].string.lower()
                 if next_mnem.startswith('j') and next_mnem[1:] in cc_to_sym:
-                    res += op_str(operands[0]) + ' ' + cc_to_sym[next_mnem[1:]] + ' ' + op_str(operands[1]) + ' : ' + op_str(next_line[1:]) + "\n"
+                    res.append((line, op_str(operands[0]) + ' ' + cc_to_sym[next_mnem[1:]] + ' ' + op_str(operands[1]) + ' : ' + op_str(next_line[1:])))
+                    res.append((next_line, '-'))
                     next_line = lines.next_line()
                     continue
 
-            res += op_str(operands[0]) + ' <=> ' + op_str(operands[1])
+            res.append((line, op_str(operands[0]) + ' <=> ' + op_str(operands[1])))
 
         elif mnem.startswith('set') and mnem[3:] in cc_to_sym:
             assert(len(operands) == 1)
-            res += op_str(operands[0]) + ' = 1 if ' + cc_to_sym[mnem[3:]] + ' else 0'
+            res.append((line, op_str(operands[0]) + ' = 1 if ' + cc_to_sym[mnem[3:]] + ' else 0'))
 
         elif mnem.startswith('cmov') and mnem[4:] in cc_to_sym:
             assert(len(operands) == 2)
-            res += op_str(operands[0]) + ' = ' + op_str(operands[1]) + ' if ' + cc_to_sym[mnem[4:]]
+            res.append((line, op_str(operands[0]) + ' = ' + op_str(operands[1]) + ' if ' + cc_to_sym[mnem[4:]]))
 
         elif mnem.startswith('j') and mnem[1:] in cc_to_sym:
             assert(len(operands) == 1)
-            res += cc_to_sym[mnem[1:]] + ' : ' + op_str(operands[0])
+            res.append((line, cc_to_sym[mnem[1:]] + ' : ' + op_str(operands[0])))
 
         else:
-            res += op_str(line)
-
-        res += "\n"
+            res.append((line, ''))
 
     return res
 
@@ -312,7 +311,7 @@ Options:
     except UnicodeDecodeError:
         sys.exit('Input is not a valid UTF-8!')
 
-    mode = 'translate'
+    mode = 'annotate'
 
     errors: List[Error] = []
     tokens = tokenize(infile_str, errors)
@@ -321,8 +320,14 @@ Options:
 
     if mode == 'translate':
         assert(lang == 'masm')
-        print(translate_masm_to_symasm(tokens, infile_str))
+        for src_line, line in translate_masm_to_symasm(tokens, infile_str):
+            if line != '-':
+                print(line if line != '' else infile_str[src_line[0].start : src_line[-1].end])
     elif mode == 'annotate':
-        pass
+        assert(lang == 'masm')
+        translation = translate_masm_to_symasm(tokens, infile_str)
+        longest_src_line_len = max(len(infile_str[src_line[0].start : src_line[-1].end]) for src_line, line in translation)
+        for src_line, line in translation:
+            print(infile_str[src_line[0].start : src_line[-1].end].ljust(longest_src_line_len) + (' ; ' + line if line != '' else ''))
     else:
         sys.exit('Wrong mode: ' + mode)
