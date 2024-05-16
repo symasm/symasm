@@ -20,6 +20,7 @@ class Token:
         DELIMITER = 3
         NUMERIC_LITERAL = 4
         NEWLINE = 5
+        COMMENT = 6
 
     start: int
     end: int
@@ -67,6 +68,7 @@ def tokenize(source, errors: list):
             i += 1
             while i < len(source) and source[i] != "\n":
                 i += 1
+            tokens.append(Token(comment_start, i, Token.Category.COMMENT, source))
             # if comments is not None:
             #     comments.append((comment_start, i))
         else:
@@ -127,15 +129,42 @@ def tokenize(source, errors: list):
 
     return tokens
 
-def detect_input_language(source):
-    for line in source.split("\n"):
-        line = line.split(';', maxsplit = 1)[0].strip(' ')
+class Lines:
+    tokens: List[Token]
+    tokeni = 0
 
-        if line.endswith(':'): # it is a label - this syntax is valid in all languages
+    def __init__(self, tokens):
+        self.tokens = tokens
+
+    def next_line(self):
+        line_start = self.tokeni
+
+        while self.tokeni < len(self.tokens):
+            if self.tokens[self.tokeni].category == Token.Category.COMMENT:
+                line_end = self.tokeni
+                self.tokeni += 1
+                if self.tokeni < len(self.tokens) and self.tokens[self.tokeni].category == Token.Category.NEWLINE:
+                    self.tokeni += 1
+                return self.tokens[line_start:line_end]
+
+            if self.tokens[self.tokeni].category == Token.Category.NEWLINE:
+                self.tokeni += 1
+                return self.tokens[line_start:self.tokeni-1]
+
+            self.tokeni += 1
+
+        return self.tokens[line_start:self.tokeni]
+
+def detect_input_language(input_tokens):
+    lines = Lines(input_tokens)
+
+    while True:
+        tokens = lines.next_line()
+        if len(tokens) == 0:
+            break
+
+        if tokens[-1].string == ':': # it is a label - this syntax is valid in all languages
             continue
-
-        errors: List[Error] = []
-        tokens = tokenize(line, errors)
 
         if len(tokens) >= 2 and tokens[-1].category == Token.Category.NAME and tokens[-2].string == ':': # symasm branch instruction (conditional or unconditional)
             if not (len(tokens) > 4 and tokens[-3].string.lower() in ('fs', 'gs') and tokens[-4].string.lower() == 'ptr'): # support thread_local variables
@@ -209,8 +238,13 @@ Options:
     except UnicodeDecodeError:
         sys.exit('Input is not a valid UTF-8!')
 
-    lang = detect_input_language(infile_str)
-    print(lang)
+    mode = 'translate'
+
     errors: List[Error] = []
-    for token in tokenize(infile_str, errors):
+    tokens = tokenize(infile_str, errors)
+
+    lang = detect_input_language(tokens)
+
+    print(lang)
+    for token in tokens:
         print(token)
