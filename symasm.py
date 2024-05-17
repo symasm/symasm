@@ -1,6 +1,6 @@
 import sys
 from enum import IntEnum
-from typing import List, Dict
+from typing import List, Dict, Callable
 
 primary_operators = ['=', '+=', '-=', '*=', 'u*=', '/=', 'u/=', r'\=', '++', '--', '&=', '|=', '(+)=', '<<=', '>>=', 'u>>=', '(<<)=', '(>>)=', '><', '<=>', '<&>', 'f<=>', 'uo<=>', '.=']
 primary_operators += ['|' + op + '|' for op in primary_operators]
@@ -312,6 +312,35 @@ Options:
         sys.exit('Input is not a valid UTF-8!')
 
     mode = 'annotate'
+    indent = 'keep'
+
+    indent_f: Callable[[List[Token]], str]
+    if indent == 'keep':
+        def indent_keep(line):
+            i = line[0].start
+            while i >= 0 and infile_str[i] != "\n":
+                i -= 1
+            return infile_str[i+1 : line[0].start]
+        indent_f = indent_keep
+    else:
+        def indent_fixed(line):
+            if line[-1].string == ':': # labels are not indented
+                return ''
+            return indent
+        indent_f = indent_fixed
+
+        if indent == 'none':
+            indent = ''
+        elif indent == 'tab':
+            indent = "\t"
+        elif indent == 'space':
+            indent = ' '
+        elif indent.endswith(' tabs'):
+            indent = "\t" * int(indent.split(' ')[0])
+        elif indent.endswith(' spaces'):
+            indent = ' ' * int(indent.split(' ')[0])
+        else:
+            sys.exit('Wrong indent: ' + indent)
 
     errors: List[Error] = []
     tokens = tokenize(infile_str, errors)
@@ -322,12 +351,12 @@ Options:
         assert(lang == 'masm')
         for src_line, line in translate_masm_to_symasm(tokens, infile_str):
             if line != '-':
-                print(line if line != '' else infile_str[src_line[0].start : src_line[-1].end])
+                print(indent_f(src_line) + (line if line != '' else infile_str[src_line[0].start : src_line[-1].end]))
     elif mode == 'annotate':
         assert(lang == 'masm')
         translation = translate_masm_to_symasm(tokens, infile_str)
-        longest_src_line_len = max(len(infile_str[src_line[0].start : src_line[-1].end]) for src_line, line in translation)
+        longest_src_line_len = max(src_line[-1].end - src_line[0].start for src_line, line in translation)
         for src_line, line in translation:
-            print(infile_str[src_line[0].start : src_line[-1].end].ljust(longest_src_line_len) + (' ; ' + line if line != '' else ''))
+            print(indent_f(src_line) + infile_str[src_line[0].start : src_line[-1].end].ljust(longest_src_line_len) + (' ; ' + line if line != '' else ''))
     else:
         sys.exit('Wrong mode: ' + mode)
