@@ -27,12 +27,14 @@ class Token:
     end: int
     category: Category
     string: str
+    index: int
 
-    def __init__(self, start, end, category, source):
+    def __init__(self, start, end, category, source, index):
         self.start = start
         self.end = end
         self.category = category
         self.string = source[start:end]
+        self.index = index
 
     def __str__(self):
         return 'Token(' + str(self.category) + ', "' + self.string + '")'
@@ -62,14 +64,14 @@ def tokenize(source, errors: list):
         if ch in " \t":
             i += 1 # just skip whitespace characters
         elif ch == "\n":
-            tokens.append(Token(i, i + 1, Token.Category.NEWLINE, source))
+            tokens.append(Token(i, i + 1, Token.Category.NEWLINE, source, len(tokens)))
             i += 1
         elif ch == ';':
             comment_start = i
             i += 1
             while i < len(source) and source[i] != "\n":
                 i += 1
-            tokens.append(Token(comment_start, i, Token.Category.COMMENT, source))
+            tokens.append(Token(comment_start, i, Token.Category.COMMENT, source, len(tokens)))
             # if comments is not None:
             #     comments.append((comment_start, i))
         else:
@@ -113,7 +115,7 @@ def tokenize(source, errors: list):
                 if source[i:i+1].lower() in ('b', 'h'):
                     i += 1
 
-                tokens.append(Token(lexem_start, i, Token.Category.NUMERIC_LITERAL, source))
+                tokens.append(Token(lexem_start, i, Token.Category.NUMERIC_LITERAL, source, len(tokens)))
 
                 if is_hex and source[i-1].lower() != 'h':
                     error_at_token(errors, 'hexadecimal numbers must end with the `h` suffix', tokens[-1])
@@ -126,7 +128,7 @@ def tokenize(source, errors: list):
             else:
                 errors.append(Error('unexpected character `' + ch + '`', lexem_start, lexem_start))
 
-            tokens.append(Token(lexem_start, i, category, source))
+            tokens.append(Token(lexem_start, i, category, source, len(tokens)))
 
     return tokens
 
@@ -223,7 +225,8 @@ def translate_masm_to_symasm(tokens, source):
 
         if mnem == 'mov':
             assert(len(operands) == 2)
-            res.append((line, op_str(operands[0]) + ' = ' + op_str(operands[1])))
+            op2 = op_str(operands[1])
+            res.append((line, op_str(operands[0]) + ' = ' + ('(0)' if op2 == '0' else op2)))
 
         elif mnem == 'xor':
             assert(len(operands) == 2)
@@ -347,16 +350,20 @@ Options:
 
     lang = detect_input_language(tokens)
 
+    def get_comment(src_line):
+        return ' ' + tokens[src_line[-1].index + 1].string if src_line[-1].index + 1 < len(tokens) and tokens[src_line[-1].index + 1].category == Token.Category.COMMENT else ''
+
     if mode == 'translate':
         assert(lang == 'masm')
         for src_line, line in translate_masm_to_symasm(tokens, infile_str):
             if line != '-':
-                print(indent_f(src_line) + (line if line != '' else infile_str[src_line[0].start : src_line[-1].end]))
+                print(indent_f(src_line) + (line if line != '' else infile_str[src_line[0].start : src_line[-1].end]) + get_comment(src_line))
     elif mode == 'annotate':
         assert(lang == 'masm')
         translation = translate_masm_to_symasm(tokens, infile_str)
         longest_src_line_len = max(src_line[-1].end - src_line[0].start for src_line, line in translation)
         for src_line, line in translation:
-            print(indent_f(src_line) + infile_str[src_line[0].start : src_line[-1].end].ljust(longest_src_line_len) + (' ; ' + line if line != '' else ''))
+            comment = get_comment(src_line)
+            print(indent_f(src_line) + infile_str[src_line[0].start : src_line[-1].end].ljust(longest_src_line_len) + (' ; ' + line + comment if line != '' else '  ' + comment if comment != '' else ''))
     else:
         sys.exit('Wrong mode: ' + mode)
