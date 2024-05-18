@@ -64,6 +64,9 @@ def tokenize(source, errors: list):
         if ch in " \t":
             i += 1 # just skip whitespace characters
         elif ch == "\n":
+            if len(tokens) == 0 or tokens[-1].category == Token.Category.NEWLINE:
+                tokens.append(Token(i, i, Token.Category.DELIMITER, source, len(tokens)))
+
             tokens.append(Token(i, i + 1, Token.Category.NEWLINE, source, len(tokens)))
             i += 1
         elif ch == ';':
@@ -71,6 +74,10 @@ def tokenize(source, errors: list):
             i += 1
             while i < len(source) and source[i] != "\n":
                 i += 1
+
+            if len(tokens) == 0 or tokens[-1].category == Token.Category.NEWLINE:
+                tokens.append(Token(i, i, Token.Category.DELIMITER, source, len(tokens)))
+
             tokens.append(Token(comment_start, i, Token.Category.COMMENT, source, len(tokens)))
             # if comments is not None:
             #     comments.append((comment_start, i))
@@ -206,6 +213,10 @@ def translate_masm_to_symasm(tokens, source):
         if len(line) == 0:
             break
         next_line = lines.next_line()
+
+        if len(line) == 1 and line[0].category == Token.Category.DELIMITER and line[0].string == '': # this is an empty line
+            res.append((line, ''))
+            continue
 
         if line[-1].string == ':': # this is a label
             res.append((line, ''))
@@ -350,6 +361,11 @@ Options:
 
     lang = detect_input_language(tokens)
 
+    def line_str(src_line):
+        line_start = tokens[src_line[ 0].index - 1].end if src_line[ 0].index > 0 else 0
+        line_end   = tokens[src_line[-1].index + 1].end if src_line[-1].index + 1 < len(tokens) and tokens[src_line[-1].index + 1].category == Token.Category.COMMENT else src_line[-1].end
+        return infile_str[line_start : line_end]
+
     def get_comment(src_line):
         return ' ' + tokens[src_line[-1].index + 1].string if src_line[-1].index + 1 < len(tokens) and tokens[src_line[-1].index + 1].category == Token.Category.COMMENT else ''
 
@@ -357,16 +373,19 @@ Options:
         assert(lang == 'masm')
         for src_line, line in translate_masm_to_symasm(tokens, infile_str):
             if line != '-':
+                if (src_line[-1].string == ':'
+                        or (len(src_line) == 1 and src_line[0].category == Token.Category.DELIMITER and src_line[0].string == '')):
+                    print(line_str(src_line))
+                    continue
                 print(indent_f(src_line) + (line if line != '' else infile_str[src_line[0].start : src_line[-1].end]) + get_comment(src_line))
     elif mode == 'annotate':
         assert(lang == 'masm')
         translation = translate_masm_to_symasm(tokens, infile_str)
         longest_src_line_len = max((src_line[-1].end - src_line[0].start for src_line, line in translation if src_line[-1].string != ':'), default = 0)
         for src_line, line in translation:
-            if src_line[-1].string == ':': # labels do not need to be justified (this is for labels with comments)
-                line_start = tokens[src_line[ 0].index - 1].end if src_line[ 0].index > 0 else 0
-                line_end   = tokens[src_line[-1].index + 1].end if src_line[-1].index + 1 < len(tokens) and tokens[src_line[-1].index + 1].category == Token.Category.COMMENT else src_line[-1].end
-                print(infile_str[line_start : line_end])
+            if (src_line[-1].string == ':' # labels do not need to be justified (this is for labels with comments)
+                    or (len(src_line) == 1 and src_line[0].category == Token.Category.DELIMITER and src_line[0].string == '')):
+                print(line_str(src_line))
                 continue
             comment = get_comment(src_line)
             print(indent_f(src_line) + infile_str[src_line[0].start : src_line[-1].end].ljust(longest_src_line_len) + (' ; ' + line + comment if line != '' else '  ' + comment if comment != '' else ''))
