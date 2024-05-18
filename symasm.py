@@ -1,6 +1,6 @@
 import sys
 from enum import IntEnum
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, NamedTuple
 
 primary_operators = ['=', '+=', '-=', '*=', 'u*=', '/=', 'u/=', r'\=', '++', '--', '&=', '|=', '(+)=', '<<=', '>>=', 'u>>=', '(<<)=', '(>>)=', '><', '<=>', '<&>', 'f<=>', 'uo<=>', '.=']
 primary_operators += ['|' + op + '|' for op in primary_operators]
@@ -291,9 +291,55 @@ Positional arguments:
 Options:
   -h, --help            show this help message and exit
   -f OUTPUT_FILE, --file OUTPUT_FILE
-                        write output to OUTPUT_FILE (defaults to STDOUT)''')
+                        write output to OUTPUT_FILE (defaults to STDOUT)
+  --annotate            force operating mode to annotate
+  --translate           force operating mode to translate''')
         sys.exit(0)
 
+    # Options
+    class Option(NamedTuple):
+        name: str
+        default_value: str
+        description: str
+
+    options_list = [
+        Option('input_language', 'auto', 'Input language (masm, att, symasm)'),
+        Option('mode',   'auto', 'Operating mode (annotate, translate)'),
+        Option('indent', 'keep', 'Indent (tab, space, 4 spaces, 2 tabs, etc.)'),
+        Option('case',   'keep', 'Case (upper, lower)'),
+    ]
+    options: Dict[str, str] = {}
+    for option in options_list:
+        options[option.name] = option.default_value
+
+    # Read config
+    config = ''
+    try:
+        config = open('symasm_config.txt', encoding = 'utf-8-sig').read()
+    except:
+        pass
+    for line in config.split("\n"):
+        line = line.strip()
+        if line.startswith('//') or line == '':
+            continue
+        name, value = line.split('=', maxsplit = 1)
+        name = name.strip()
+        if not name in options:
+            sys.exit('Unknown option: ' + name)
+        options[name] = value.strip()
+
+    # Update config
+    new_config = ''
+    for option in options_list:
+        new_config += '// ' + option.description + "\n"
+        new_config += '// Default value: ' + option.default_value + "\n"
+        new_config += option.name + ' = ' + options[option.name] + "\n"
+        if option is not options_list[-1]:
+            new_config += "\n"
+    if new_config != config:
+        open('symasm_config.txt', 'w', encoding = 'utf-8').write(new_config)
+
+    # Parse command line arguments
     args_infile = sys.stdin
     i = 1
     while i < len(sys.argv):
@@ -305,7 +351,11 @@ Options:
                 args_infile = open(sys.argv[i], 'r', encoding = 'utf-8-sig')
             except:
                 sys.exit("Can't open file '" + sys.argv[i] + "'")
-            break
+            #break
+        if sys.argv[i] == '--annotate':
+            options['mode'] = 'annotate'
+        if sys.argv[i] == '--translate':
+            options['mode'] = 'translate'
         i += 1
     args_outfile = sys.stdout
     outfile_name: str
@@ -319,14 +369,15 @@ Options:
     except:
         sys.exit("Can't open file '" + outfile_name + "' for writing")
 
+    # Read and process input
     infile_str: str
     try:
         infile_str = args_infile.read()
     except UnicodeDecodeError:
         sys.exit('Input is not a valid UTF-8!')
 
-    mode = 'annotate'
-    indent = 'keep'
+    mode   = options['mode']
+    indent = options['indent']
 
     indent_f: Callable[[List[Token]], str]
     if indent == 'keep':
@@ -359,7 +410,11 @@ Options:
     errors: List[Error] = []
     tokens = tokenize(infile_str, errors)
 
-    lang = detect_input_language(tokens)
+    lang = options['input_language']
+    if lang == 'auto':
+        lang = detect_input_language(tokens)
+    if mode == 'auto':
+        mode = 'annotate' if lang != 'symasm' else 'translate'
 
     def line_str(src_line):
         line_start = tokens[src_line[ 0].index - 1].end if src_line[ 0].index > 0 else 0
