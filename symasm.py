@@ -371,13 +371,22 @@ Options:
 
     if mode == 'translate':
         assert(lang == 'masm')
-        for src_line, line in translate_masm_to_symasm(tokens, infile_str):
-            if line != '-':
-                if (src_line[-1].string == ':'
-                        or (len(src_line) == 1 and src_line[0].category == Token.Category.DELIMITER and src_line[0].string == '')):
-                    print(line_str(src_line))
-                    continue
-                print(indent_f(src_line) + (line if line != '' else infile_str[src_line[0].start : src_line[-1].end]) + get_comment(src_line))
+        translation = translate_masm_to_symasm(tokens, infile_str)
+        for i in range(len(translation)):
+            src_line, line = translation[i]
+            if line == '-':
+                continue
+
+            if (src_line[-1].string == ':'
+                    or (len(src_line) == 1 and src_line[0].category == Token.Category.DELIMITER and src_line[0].string == '')):
+                print(line_str(src_line))
+                continue
+
+            comment:str = get_comment(src_line)
+            if i + 1 < len(translation) and translation[i + 1][1] == '-':
+                comment += get_comment(translation[i + 1][0])
+            print(indent_f(src_line) + (line if line != '' else infile_str[src_line[0].start : src_line[-1].end]) + comment)
+
     elif mode == 'annotate':
         assert(lang == 'masm')
         translation = translate_masm_to_symasm(tokens, infile_str)
@@ -389,5 +398,6 @@ Options:
                 continue
             comment = get_comment(src_line)
             print(indent_f(src_line) + infile_str[src_line[0].start : src_line[-1].end].ljust(longest_src_line_len) + (' ; ' + line + comment if line != '' else '  ' + comment if comment != '' else ''))
+
     else:
         sys.exit('Wrong mode: ' + mode)
