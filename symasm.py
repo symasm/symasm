@@ -363,6 +363,11 @@ Options:
         translation = translate_masm_to_symasm(tokens, infile_str)
         longest_src_line_len = max(src_line[-1].end - src_line[0].start for src_line, line in translation)
         for src_line, line in translation:
+            if src_line[-1].string == ':': # labels do not need to be justified (this is for labels with comments)
+                line_start = tokens[src_line[ 0].index - 1].end if src_line[ 0].index > 0 else 0
+                line_end   = tokens[src_line[-1].index + 1].end if src_line[-1].index + 1 < len(tokens) and tokens[src_line[-1].index + 1].category == Token.Category.COMMENT else src_line[-1].end
+                print(infile_str[line_start : line_end])
+                continue
             comment = get_comment(src_line)
             print(indent_f(src_line) + infile_str[src_line[0].start : src_line[-1].end].ljust(longest_src_line_len) + (' ; ' + line + comment if line != '' else '  ' + comment if comment != '' else ''))
     else:
