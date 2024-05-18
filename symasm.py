@@ -361,7 +361,7 @@ Options:
     elif mode == 'annotate':
         assert(lang == 'masm')
         translation = translate_masm_to_symasm(tokens, infile_str)
-        longest_src_line_len = max(src_line[-1].end - src_line[0].start for src_line, line in translation if src_line[-1].string != ':')
+        longest_src_line_len = max((src_line[-1].end - src_line[0].start for src_line, line in translation if src_line[-1].string != ':'), default = 0)
         for src_line, line in translation:
             if src_line[-1].string == ':': # labels do not need to be justified (this is for labels with comments)
                 line_start = tokens[src_line[ 0].index - 1].end if src_line[ 0].index > 0 else 0
