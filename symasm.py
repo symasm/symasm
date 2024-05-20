@@ -357,15 +357,15 @@ Options:
         if sys.argv[i] == '--translate':
             options['mode'] = 'translate'
         i += 1
-    args_outfile = sys.stdout
+    out = sys.stdout
     outfile_name: str
     try:
         if '-f' in sys.argv:
             outfile_name = sys.argv[sys.argv.index('-f')     + 1]
-            args_outfile = open(outfile_name, 'w', encoding = 'utf-8', newline = "\n")
+            out = open(outfile_name, 'w', encoding = 'utf-8', newline = "\n")
         elif '--file' in sys.argv:
             outfile_name = sys.argv[sys.argv.index('--file') + 1]
-            args_outfile = open(outfile_name, 'w', encoding = 'utf-8', newline = "\n")
+            out = open(outfile_name, 'w', encoding = 'utf-8', newline = "\n")
     except:
         sys.exit("Can't open file '" + outfile_name + "' for writing")
 
@@ -434,13 +434,13 @@ Options:
 
             if (src_line[-1].string == ':'
                     or (len(src_line) == 1 and src_line[0].category == Token.Category.DELIMITER and src_line[0].string == '')):
-                print(line_str(src_line))
+                out.write(line_str(src_line) + "\n")
                 continue
 
             comment:str = get_comment(src_line)
             if i + 1 < len(translation) and translation[i + 1][1] == '-':
                 comment += get_comment(translation[i + 1][0])
-            print(indent_f(src_line) + (line if line != '' else infile_str[src_line[0].start : src_line[-1].end]) + comment)
+            out.write(indent_f(src_line) + (line if line != '' else infile_str[src_line[0].start : src_line[-1].end]) + comment + "\n")
 
     elif mode == 'annotate':
         assert(lang == 'masm')
@@ -449,10 +449,10 @@ Options:
         for src_line, line in translation:
             if (src_line[-1].string == ':' # labels do not need to be justified (this is for labels with comments)
                     or (len(src_line) == 1 and src_line[0].category == Token.Category.DELIMITER and src_line[0].string == '')):
-                print(line_str(src_line))
+                out.write(line_str(src_line) + "\n")
                 continue
             comment = get_comment(src_line)
-            print(indent_f(src_line) + infile_str[src_line[0].start : src_line[-1].end].ljust(longest_src_line_len) + (' ; ' + line + comment if line != '' else '  ' + comment if comment != '' else ''))
+            out.write(indent_f(src_line) + infile_str[src_line[0].start : src_line[-1].end].ljust(longest_src_line_len) + (' ; ' + line + comment if line != '' else '  ' + comment if comment != '' else '') + "\n")
 
     else:
         sys.exit('Wrong mode: ' + mode)
