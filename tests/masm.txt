@@ -1,0 +1,7 @@
+compare(int, int):
+        xor     eax, eax ; eax = 0
+        cmp     edi, esi ; edi <=> esi
+        mov     edx, -1  ; edx = -1
+        setg    al       ; al = 1 if > else 0
+        cmovl   eax, edx ; eax = edx if <
+        ret
