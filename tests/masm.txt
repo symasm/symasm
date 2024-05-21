@@ -21,3 +21,18 @@ divide(long, long):
         cqo              ; rdx:rax = sx(rax)
         idiv    rsi      ; rdx:rax /= rsi
         ret
+
+------------------------------------------
+
+palindrome_start:
+    cmp rcx, 0               ; rcx < 0 : palindrome_end
+    jl palindrome_end        ; -
+    mov rbx, rdx             ; rbx = rdx
+    sub rbx, rcx             ; rbx -= rcx
+    sub rbx, 1               ; rbx -= 1
+    mov bl, byte [rdi + rbx] ; bl = byte [rdi + rbx]
+    cmp byte [rdi + rcx], bl ; byte [rdi + rcx] != bl : palindrome_failed
+    jne palindrome_failed    ; -
+    dec rcx                  ; rcx--
+    jmp palindrome_start     ; :palindrome_start
+palindrome_end:

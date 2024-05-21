@@ -205,6 +205,20 @@ instructions_without_operands = {
     'cqo' : 'rdx:rax = sx(rax)',
 }
 
+simple_instructions_with_2_operands = {
+    'add' : '+',
+    'sub' : '-',
+    'and' : '&',
+    'or'  : '|',
+    'sal' : '<<',
+    'shl' : '<<',
+    'sar' : '>>',
+    'shr' : 'u>>',
+    'rol' : '(<<)',
+    'ror' : '(>>)',
+    'xchg': '><',
+}
+
 def translate_masm_to_symasm(tokens, source):
     lines = Lines(tokens)
     next_line = lines.next_line()
@@ -253,6 +267,18 @@ def translate_masm_to_symasm(tokens, source):
                 res.append((line, op1 + ' = 0'))
             else:
                 res.append((line, op1 + ' (+)= ' + op2))
+
+        elif mnem in simple_instructions_with_2_operands:
+            assert(len(operands) == 2)
+            res.append((line, op_str(operands[0]) + ' ' + simple_instructions_with_2_operands[mnem] + '= ' + op_str(operands[1])))
+
+        elif mnem == 'jmp':
+            assert(len(operands) == 1)
+            res.append((line, ':' + op_str(operands[0])))
+
+        elif mnem in ('inc', 'dec'):
+            assert(len(operands) == 1)
+            res.append((line, op_str(operands[0]) + ('++' if mnem == 'inc' else '--')))
 
         elif mnem == 'cmp':
             assert(len(operands) == 2)
