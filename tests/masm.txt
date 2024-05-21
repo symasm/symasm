@@ -5,3 +5,19 @@ compare(int, int):
         setg    al       ; al = 1 if > else 0
         cmovl   eax, edx ; eax = edx if <
         ret
+
+------------------------------------------
+
+divide(int, int):
+        mov     eax, edi ; eax = edi
+        cdq              ; edx:eax = sx(eax)
+        idiv    esi      ; edx:eax /= esi
+        ret
+
+------------------------------------------
+
+divide(long, long):
+        mov     rax, rdi ; rax = rdi
+        cqo              ; rdx:rax = sx(rax)
+        idiv    rsi      ; rdx:rax /= rsi
+        ret
