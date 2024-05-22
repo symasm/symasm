@@ -293,6 +293,21 @@ def translate_masm_to_symasm(tokens, source):
 
             res.append((line, op_str(operands[0]) + ' <=> ' + op_str(operands[1])))
 
+        elif mnem == 'test':
+            assert(len(operands) == 2)
+            op1 = op_str(operands[0])
+            op2 = op_str(operands[1])
+
+            if op1 == op2 and len(next_line) > 0:
+                next_mnem = next_line[0].string.lower()
+                if next_mnem.startswith('j') and next_mnem[1:] in ('z', 'nz', 'e', 'ne'):
+                    res.append((line, op1 + (' !=' if next_mnem[1] == 'n' else ' ==') + ' 0 : ' + op_str(next_line[1:])))
+                    res.append((next_line, '-'))
+                    next_line = lines.next_line()
+                    continue
+
+            res.append((line, op1 + ' <&> ' + op2))
+
         elif mnem.startswith('set') and mnem[3:] in cc_to_sym:
             assert(len(operands) == 1)
             res.append((line, op_str(operands[0]) + ' = 1 if ' + cc_to_sym[mnem[3:]] + ' else 0'))

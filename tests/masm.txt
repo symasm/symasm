@@ -36,3 +36,12 @@ palindrome_start:
     dec rcx                  ; rcx--
     jmp palindrome_start     ; :palindrome_start
 palindrome_end:
+
+------------------------------------------
+
+    test    ecx, ecx ; ecx == 0 : .zero
+    jz     .zero     ; -
+
+    test eax, eax    ; eax != 0 : label
+    jnz label        ; -
+    test eax, ebx    ; eax <&> ebx
