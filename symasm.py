@@ -1,4 +1,4 @@
-import sys
+import sys, re
 from enum import IntEnum
 from typing import List, Dict, Callable, NamedTuple
 
@@ -219,7 +219,7 @@ simple_instructions_with_2_operands = {
     'xchg': '><',
 }
 
-def translate_masm_to_symasm(tokens, source):
+def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
     lines = Lines(tokens)
     next_line = lines.next_line()
 
@@ -254,13 +254,23 @@ def translate_masm_to_symasm(tokens, source):
         if len(last_operand) > 0:
             operands.append(last_operand)
 
+        def eoc(n): # expected operand count
+            if len(operands) != n:
+                if errors is not None:
+                    error_at_token(errors, f'`{mnem}` instruction must have {n} operand(s)', line[0])
+
+        def eoc_range(fr, thru):
+            if len(operands) not in range(fr, thru + 1):
+                if errors is not None:
+                    error_at_token(errors, f'`{mnem}` instruction must have {fr} through {thru} operands', line[0])
+
         if mnem == 'mov':
-            assert(len(operands) == 2)
+            eoc(2)
             op2 = op_str(operands[1])
             res.append((line, op_str(operands[0]) + ' = ' + ('(0)' if op2 == '0' else op2)))
 
         elif mnem == 'xor':
-            assert(len(operands) == 2)
+            eoc(2)
             op1 = op_str(operands[0])
             op2 = op_str(operands[1])
             if op1 == op2:
@@ -269,15 +279,15 @@ def translate_masm_to_symasm(tokens, source):
                 res.append((line, op1 + ' (+)= ' + op2))
 
         elif mnem in simple_instructions_with_2_operands:
-            assert(len(operands) == 2)
+            eoc(2)
             res.append((line, op_str(operands[0]) + ' ' + simple_instructions_with_2_operands[mnem] + '= ' + op_str(operands[1])))
 
         elif mnem == 'jmp':
-            assert(len(operands) == 1)
+            eoc(1)
             res.append((line, ':' + op_str(operands[0])))
 
         elif mnem in ('inc', 'dec'):
-            assert(len(operands) == 1)
+            eoc(1)
 
             # >‘Do not use the INC or DEC instructions in x86 or x64 CodeGen’[https://github.com/dotnet/runtime/issues/7697 <- google:‘why compilers prefer sub over "dec"’]:‘
             # The partial flags stall only happens on older CPUs (P4) and Atom, for new Intel CPUs are able to rename each flag bit separately.’
@@ -292,7 +302,7 @@ def translate_masm_to_symasm(tokens, source):
             res.append((line, op_str(operands[0]) + ('++' if mnem == 'inc' else '--')))
 
         elif mnem == 'cmp':
-            assert(len(operands) == 2)
+            eoc(2)
 
             if len(next_line) > 0:
                 next_mnem = next_line[0].string.lower()
@@ -305,7 +315,7 @@ def translate_masm_to_symasm(tokens, source):
             res.append((line, op_str(operands[0]) + ' <=> ' + op_str(operands[1])))
 
         elif mnem == 'test':
-            assert(len(operands) == 2)
+            eoc(2)
             op1 = op_str(operands[0])
             op2 = op_str(operands[1])
 
@@ -320,26 +330,47 @@ def translate_masm_to_symasm(tokens, source):
             res.append((line, op1 + ' <&> ' + op2))
 
         elif mnem.startswith('set') and mnem[3:] in cc_to_sym:
-            assert(len(operands) == 1)
+            eoc(1)
             res.append((line, op_str(operands[0]) + ' = 1 if ' + cc_to_sym[mnem[3:]] + ' else 0'))
 
         elif mnem.startswith('cmov') and mnem[4:] in cc_to_sym:
-            assert(len(operands) == 2)
+            eoc(2)
             res.append((line, op_str(operands[0]) + ' = ' + op_str(operands[1]) + ' if ' + cc_to_sym[mnem[4:]]))
 
         elif mnem.startswith('j') and mnem[1:] in cc_to_sym:
-            assert(len(operands) == 1)
+            eoc(1)
             res.append((line, cc_to_sym[mnem[1:]] + ' : ' + op_str(operands[0])))
 
         elif mnem in instructions_without_operands:
-            assert(len(operands) == 0)
+            eoc(0)
             res.append((line, instructions_without_operands[mnem]))
 
-        elif mnem == 'idiv':
-            assert(len(operands) == 1)
+        elif mnem in ('neg', 'not'):
+            eoc(1)
+            res.append((line, op_str(operands[0]) + ' = ' + ('-' if mnem == 'neg' else '~') + op_str(operands[0])))
+
+        elif mnem == 'imul' and len(operands) > 1:
+            eoc_range(1, 3)
+            if len(operands) == 2:
+                res.append((line, op_str(operands[0]) + ' *= ' + op_str(operands[1])))
+            else:
+                res.append((line, op_str(operands[0]) + ' = ' + op_str(operands[1]) + ' * ' + op_str(operands[2])))
+
+        elif mnem in ('mul', 'imul', 'div', 'idiv'):
+            eoc(1)
             op = op_str(operands[0])
             regp = op[0]
-            res.append((line, f'{regp}dx:{regp}ax /= ' + op))
+            u = 'u' * (mnem[0] != 'i')
+            o = '*' if mnem.endswith('mul') else '/'
+            res.append((line, f'{regp}dx:{regp}ax {u}{o}= {op}'))
+
+        elif mnem in ('adc', 'sbb'):
+            eoc(2)
+            res.append((line, op_str(operands[0]) + ' ' + ('+' if mnem == 'adc' else '-') + '= ' + op_str(operands[1]) + ' + cf'))
+
+        elif mnem in ('rcl', 'rcr'):
+            eoc(2)
+            res.append((line, 'cf:' + op_str(operands[0]) + ' (' + ('<<' if mnem == 'rcl' else '>>') + ')= ' + op_str(operands[1])))
 
         else:
             res.append((line, ''))
@@ -478,6 +509,18 @@ Options:
     errors: List[Error] = []
     tokens = tokenize(infile_str, errors)
 
+    def check_errors():
+        if len(errors) > 0:
+            for e in errors:
+                next_line_pos = infile_str.find("\n", e.pos)
+                if next_line_pos == -1:
+                    next_line_pos = len(infile_str)
+                prev_line_pos = infile_str.rfind("\n", 0, e.pos) + 1
+                sys.stderr.write('Error: ' + e.message + "\n in line " + str(infile_str[:e.pos].count("\n") + 1) + "\n"
+                                + infile_str[prev_line_pos:next_line_pos] + "\n"
+                                + re.sub(r'[^\t]', ' ', infile_str[prev_line_pos:e.pos]) + '^'*max(1, e.end - e.pos) + "\n")
+            sys.exit(len(errors))
+
     lang = options['input_language']
     if lang == 'auto':
         lang = detect_input_language(tokens)
@@ -494,7 +537,8 @@ Options:
 
     if mode == 'translate':
         assert(lang == 'masm')
-        translation = translate_masm_to_symasm(tokens, infile_str)
+        translation = translate_masm_to_symasm(tokens, infile_str, errors)
+        check_errors()
         for i in range(len(translation)):
             src_line, line = translation[i]
             if line == '-':
@@ -512,7 +556,8 @@ Options:
 
     elif mode == 'annotate':
         assert(lang == 'masm')
-        translation = translate_masm_to_symasm(tokens, infile_str)
+        translation = translate_masm_to_symasm(tokens, infile_str, errors)
+        check_errors()
         longest_src_line_len = max((src_line[-1].end - src_line[0].start for src_line, line in translation if src_line[-1].string != ':'), default = 0)
         for src_line, line in translation:
             if (src_line[-1].string == ':' # labels do not need to be justified (this is for labels with comments)

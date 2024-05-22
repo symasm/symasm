@@ -50,3 +50,32 @@ palindrome_end:
 
         dec     rdi ; --rdi != 0 : .L3
         jne     .L3 ; -
+
+------------------------------------------
+
+add eax, ebx      ; eax += ebx
+sub eax, ebx      ; eax -= ebx
+imul ebx          ; edx:eax *= ebx
+mul ebx           ; edx:eax u*= ebx
+imul ecx, edx     ; ecx *= edx
+imul ecx, edx, 10 ; ecx = edx * 10
+idiv ebx          ; edx:eax /= ebx
+div ebx           ; edx:eax u/= ebx
+neg eax           ; eax = -eax
+inc eax           ; eax++
+dec eax           ; eax--
+and eax, ebx      ; eax &= ebx
+or eax, ebx       ; eax |= ebx
+xor eax, ebx      ; eax (+)= ebx
+xor eax, eax      ; eax = 0
+not eax           ; eax = ~eax
+sal eax, cl       ; eax <<= cl
+shl eax, cl       ; eax <<= cl
+sar eax, cl       ; eax >>= cl
+shr eax, cl       ; eax u>>= cl
+rol eax, cl       ; eax (<<)= cl
+ror eax, cl       ; eax (>>)= cl
+rcl eax, cl       ; cf:eax (<<)= cl
+rcr eax, cl       ; cf:eax (>>)= cl
+adc eax, ebx      ; eax += ebx + cf
+sbb eax, ebx      ; eax -= ebx + cf
