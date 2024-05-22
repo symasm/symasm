@@ -278,6 +278,17 @@ def translate_masm_to_symasm(tokens, source):
 
         elif mnem in ('inc', 'dec'):
             assert(len(operands) == 1)
+
+            # >‘Do not use the INC or DEC instructions in x86 or x64 CodeGen’[https://github.com/dotnet/runtime/issues/7697 <- google:‘why compilers prefer sub over "dec"’]:‘
+            # The partial flags stall only happens on older CPUs (P4) and Atom, for new Intel CPUs are able to rename each flag bit separately.’
+            if mnem == 'dec' and len(next_line) > 0:
+                next_mnem = next_line[0].string.lower()
+                if next_mnem.startswith('j') and next_mnem[1:] in ('z', 'nz', 'e', 'ne'):
+                    res.append((line, '--' + op_str(operands[0]) + (' !=' if next_mnem[1] == 'n' else ' ==') + ' 0 : ' + op_str(next_line[1:])))
+                    res.append((next_line, '-'))
+                    next_line = lines.next_line()
+                    continue
+
             res.append((line, op_str(operands[0]) + ('++' if mnem == 'inc' else '--')))
 
         elif mnem == 'cmp':
