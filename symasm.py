@@ -307,7 +307,12 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
             if len(next_line) > 0:
                 next_mnem = next_line[0].string.lower()
                 if next_mnem.startswith('j') and next_mnem[1:] in cc_to_sym:
-                    res.append((line, op_str(operands[0]) + ' ' + cc_to_sym[next_mnem[1:]] + ' ' + op_str(operands[1]) + ' : ' + op_str(next_line[1:])))
+                    if next_mnem[1:] in ('z', 'nz'):
+                        next_mnem = next_mnem[:-1] + 'e'
+                    op2 = op_str(operands[1])
+                    if op2 == '0' and next_mnem[1:] in ('e', 'ne'):
+                        op2 = '(0)'
+                    res.append((line, op_str(operands[0]) + ' ' + cc_to_sym[next_mnem[1:]] + ' ' + op2 + ' : ' + op_str(next_line[1:])))
                     res.append((next_line, '-'))
                     next_line = lines.next_line()
                     continue

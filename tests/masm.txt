@@ -48,6 +48,14 @@ palindrome_end:
 
 ------------------------------------------
 
+    cmp    ecx, 0 ; ecx == (0) : .zero
+    je     .zero  ; -
+
+    cmp    ecx, 0 ; ecx == (0) : .zero
+    jz     .zero  ; -
+
+------------------------------------------
+
         dec     rdi ; --rdi != 0 : .L3
         jne     .L3 ; -
 
