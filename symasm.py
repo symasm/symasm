@@ -49,8 +49,8 @@ class Error:
         self.pos = start
         self.end = end
 
-def error_at_token(errors: list, message, token):
-    errors.append(Error(message, token.start, token.end))
+def error_at_token(message, token):
+    return Error(message, token.start, token.end)
 
 def tokenize(source, errors: list):
     tokens: List[Token] = []
@@ -125,7 +125,7 @@ def tokenize(source, errors: list):
                 tokens.append(Token(lexem_start, i, Token.Category.NUMERIC_LITERAL, source, len(tokens)))
 
                 if is_hex and source[i-1].lower() != 'h':
-                    error_at_token(errors, 'hexadecimal numbers must end with the `h` suffix', tokens[-1])
+                    errors.append(error_at_token('hexadecimal numbers must end with the `h` suffix', tokens[-1]))
 
                 continue
 
@@ -257,12 +257,12 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
         def eoc(n): # expected operand count
             if len(operands) != n:
                 if errors is not None:
-                    error_at_token(errors, f'`{mnem}` instruction must have {n} operand(s)', line[0])
+                    errors.append(error_at_token(f'`{mnem}` instruction must have {n} operand(s)', line[0]))
 
         def eoc_range(fr, thru):
             if len(operands) not in range(fr, thru + 1):
                 if errors is not None:
-                    error_at_token(errors, f'`{mnem}` instruction must have {fr} through {thru} operands', line[0])
+                    errors.append(error_at_token(f'`{mnem}` instruction must have {fr} through {thru} operands', line[0]))
 
         if mnem == 'mov':
             eoc(2)

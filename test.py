@@ -20,7 +20,7 @@ for fname in os.listdir('tests'):
             longest_src_line_len = max(src_line[-1].end - src_line[0].start for src_line, line in translation if src_line[-1].string != ':')
             annotated = ''
             for src_line, line in translation:
-                i = src_line[0].start
+                i = src_line[0].start - 1
                 while i >= 0 and test[i] != "\n":
                     i -= 1
                 indent = test[i+1 : src_line[0].start]
