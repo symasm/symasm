@@ -8,7 +8,7 @@ primary_operators.sort(key = lambda x: len(x), reverse = True)
 first_char_of_primary_operators = set() # Char
 for op in primary_operators:
     first_char_of_primary_operators.add(op[0])
-inner_binary_operators = {'/', '-'}
+inner_binary_operators = {'/', '-', '+'}
 inner_unary_operators = {'-', '~'}
 inner_operators = inner_binary_operators | inner_unary_operators
 

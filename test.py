@@ -1,4 +1,4 @@
-import os, tempfile, symasm, sys
+import os, tempfile, symasm, sys, re
 from typing import List
 
 def kdiff3(str1, str2):
@@ -16,7 +16,19 @@ for fname in os.listdir('tests'):
         for test in open('tests/' + fname, encoding = 'utf-8').read().split("\n\n" + '-' * ord('*') + "\n\n"):
             errors: List[symasm.Error] = []
             tokens = symasm.tokenize(test, errors)
-            translation = symasm.translate_masm_to_symasm(tokens, test)
+            translation = symasm.translate_masm_to_symasm(tokens, test, errors)
+            if len(errors) > 0:
+                sys.stderr.write('In ' + fname + ":\n\n")
+                for e in errors:
+                    next_line_pos = test.find("\n", e.pos)
+                    if next_line_pos == -1:
+                        next_line_pos = len(test)
+                    prev_line_pos = test.rfind("\n", 0, e.pos) + 1
+                    sys.stderr.write('Error: ' + e.message + "\n"
+                                    + test[prev_line_pos:next_line_pos] + "\n"
+                                    + re.sub(r'[^\t]', ' ', test[prev_line_pos:e.pos]) + '^'*max(1, e.end - e.pos) + "\n")
+                sys.exit(len(errors))
+
             longest_src_line_len = max(src_line[-1].end - src_line[0].start for src_line, line in translation if src_line[-1].string != ':')
             annotated = ''
             for src_line, line in translation:
@@ -25,6 +37,7 @@ for fname in os.listdir('tests'):
                     i -= 1
                 indent = test[i+1 : src_line[0].start]
                 annotated += indent + (test[src_line[0].start : src_line[-1].end].ljust(longest_src_line_len) + (' ; ' + line if line != '' else '')).rstrip(' ') + "\n"
+
             if annotated != test + "\n":
                 print("Mismatch for test:\n" + test + "\nAnnotated:\n" + annotated)
                 kdiff3(annotated, test + "\n")
