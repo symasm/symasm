@@ -12,8 +12,45 @@ def kdiff3(str1, str2):
     os.system(command)
 
 for fname in os.listdir('tests'):
-    if fname.startswith('masm'):
-        for test in open('tests/' + fname, encoding = 'utf-8').read().split("\n\n" + '-' * ord('*') + "\n\n"):
+    # if not fname.endswith('.txt'):
+    #     continue
+
+    for test in open('tests/' + fname, encoding = 'utf-8').read().split("\n\n" + '-' * ord('*') + "\n\n"):
+        if fname == 'errors.txt':
+            source = ''
+            source_errors: List[symasm.Error] = []
+            prev_line = ''
+            for line in test.split("\n"):
+                lline = line.lstrip(' ')
+                if lline.startswith('^'):
+                    if lline.lstrip('^').startswith('Error: '):
+                        source_errors.append(symasm.Error(lline[lline.find(':') + 2:], len(source) + line.find('^'), len(source) + line.find('Error: ')))
+                        continue
+                source += prev_line
+                prev_line = line + "\n"
+            source += prev_line
+
+            assert(len(source_errors) != 0)
+
+            errors: List[symasm.Error] = []
+            tokens = symasm.tokenize(source, errors)
+            translation = symasm.translate_to_symasm('masm', tokens, source, errors)
+
+            if len(errors) == 0:
+                sys.exit("There should be error(s) in test:\n" + test)
+            else:
+                for i in range(min(len(source_errors), len(errors))):
+                    if errors[i] != source_errors[i]:
+                        sys.stderr.write(f"Mismatch for error #{i+1} in test:\n{test}\n")
+                        kdiff3(str(errors[i]), str(source_errors[i]))
+                        sys.exit(1)
+                if len(source_errors) != len(errors):
+                    if len(source_errors) > len(errors):
+                        sys.exit(f"There should be an additional error '{source_errors[len(errors)].message}' in test:\n" + test)
+                    else:
+                        sys.exit(f"Extra error '{errors[len(source_errors)].message}' in test:\n" + test)
+
+        elif fname.startswith('masm'):
             errors: List[symasm.Error] = []
             tokens = symasm.tokenize(test, errors)
             translation = symasm.translate_masm_to_symasm(tokens, test, errors)
@@ -39,7 +76,7 @@ for fname in os.listdir('tests'):
                 annotated += indent + (test[src_line[0].start : src_line[-1].end].ljust(longest_src_line_len) + (' ; ' + line if line != '' else '')).rstrip(' ') + "\n"
 
             if annotated != test + "\n":
-                print("Mismatch for test:\n" + test + "\nAnnotated:\n" + annotated)
+                sys.stderr.write("Mismatch for test:\n" + test + "\nAnnotated:\n" + annotated + "\n")
                 kdiff3(annotated, test + "\n")
                 sys.exit(1)
 

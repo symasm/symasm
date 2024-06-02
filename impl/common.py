@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import List
+from typing import List, NamedTuple
 
 class Token:
     class Category(IntEnum): # why ‘Category’: >[https://docs.python.org/3/reference/lexical_analysis.html#other-tokens]:‘the following categories of tokens exist’
@@ -28,15 +28,10 @@ class Token:
     def __str__(self):
         return 'Token(' + str(self.category) + ', "' + self.string + '")'
 
-class Error:
+class Error(NamedTuple):
     message: str
     pos: int
     end: int
-
-    def __init__(self, message, start, end):
-        self.message = message
-        self.pos = start
-        self.end = end
 
 def error_at_token(message, token):
     return Error(message, token.start, token.end)

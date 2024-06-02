@@ -351,6 +351,16 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
 
     return res
 
+def translate_to_symasm(lang, tokens, source, errors: List[Error] = None):
+    assert(lang == 'masm')
+    try:
+        return translate_masm_to_symasm(tokens, source, errors)
+    except IndexError:
+        if errors is None or len(errors) == 0:
+            raise
+    empty: List[Tuple[List[Token], str]] = []
+    return empty
+
 if __name__ == '__main__':
     if '-h' in sys.argv or '--help' in sys.argv:
         print(
@@ -511,8 +521,7 @@ Options:
         return ' ' + tokens[src_line[-1].index + 1].string if src_line[-1].index + 1 < len(tokens) and tokens[src_line[-1].index + 1].category == Token.Category.COMMENT else ''
 
     if mode == 'translate':
-        assert(lang == 'masm')
-        translation = translate_masm_to_symasm(tokens, infile_str, errors)
+        translation = translate_to_symasm(lang, tokens, infile_str, errors)
         check_errors()
         for i in range(len(translation)):
             src_line, line = translation[i]
@@ -530,8 +539,7 @@ Options:
             out.write(indent_f(src_line) + (line if line != '' else infile_str[src_line[0].start : src_line[-1].end]) + comment + "\n")
 
     elif mode == 'annotate':
-        assert(lang == 'masm')
-        translation = translate_masm_to_symasm(tokens, infile_str, errors)
+        translation = translate_to_symasm(lang, tokens, infile_str, errors)
         check_errors()
         longest_src_line_len = max((src_line[-1].end - src_line[0].start for src_line, line in translation if src_line[-1].string != ':'), default = 0)
         for src_line, line in translation:

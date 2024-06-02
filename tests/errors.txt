@@ -1,0 +1,3 @@
+palindrome_start:
+    cmp rcx
+    ^^^Error: `cmp` instruction must have 2 operand(s)
