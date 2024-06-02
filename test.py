@@ -12,7 +12,7 @@ def kdiff3(str1, str2):
     os.system(command)
 
 for fname in os.listdir('tests'):
-    if fname == 'masm.txt':
+    if fname.startswith('masm'):
         for test in open('tests/' + fname, encoding = 'utf-8').read().split("\n\n" + '-' * ord('*') + "\n\n"):
             errors: List[symasm.Error] = []
             tokens = symasm.tokenize(test, errors)

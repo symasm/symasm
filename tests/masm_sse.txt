@@ -1,0 +1,58 @@
+addss xmm0, xmm1         ; xmm0s += xmm1
+subss xmm0, xmm1         ; xmm0s -= xmm1
+addsd xmm0, xmm1         ; xmm0d += xmm1
+subsd xmm0, xmm1         ; xmm0d -= xmm1
+
+mulps xmm1, xmm2         ; xmm1s |*=| xmm2
+divpd xmm3, xmm4         ; xmm3d |/=| xmm4
+
+addps xmm0, xmm1         ; xmm0s |+=| xmm1
+xorps xmm0, xmm0         ; xmm0s |=| 0
+xorps xmm0, xmm1         ; xmm0s |(+)=| xmm1
+
+paddb xmm1, xmm2         ; xmm1b |+=| xmm2
+paddw xmm1, xmm2         ; xmm1w |+=| xmm2
+paddd xmm1, xmm2         ; xmm1i |+=| xmm2
+paddq xmm1, xmm2         ; xmm1l |+=| xmm2
+
+psubb xmm3, xmm4         ; xmm3b |-=| xmm4
+PMULLW xmm1, xmm2        ; xmm1w |*=| xmm2
+
+pxor xmm1, xmm2          ; xmm1 |(+)=| xmm2
+por  xmm1, xmm2          ; xmm1 ||=| xmm2
+pand xmm1, xmm2          ; xmm1 |&=| xmm2
+pandn xmm1, xmm2         ; xmm1 |=| ~xmm1 & xmm2
+
+paddsb xmm1, xmm2        ; xmm1b |s+=| xmm2
+paddsw xmm1, xmm2        ; xmm1w |s+=| xmm2
+psubsb xmm1, xmm2        ; xmm1b |s-=| xmm2
+psubusb xmm1, xmm2       ; xmm1b |us-=| xmm2
+paddusb xmm1, xmm2       ; xmm1b |us+=| xmm2
+paddusw xmm1, xmm2       ; xmm1w |us+=| xmm2
+
+movhlps xmm0, xmm1       ; xmm0s[0:2] |=| xmm1s[2:4]
+movlhps xmm0, xmm1       ; xmm0s[2:4] |=| xmm1s[0:2]
+unpckhpd xmm0, xmm1      ; xmm0d |=| xmm0d[1], xmm1d[1]
+unpcklpd xmm0, xmm1      ; xmm0d[1] = xmm1d[0]
+
+shufps xmm0, xmm1, 1110b ; xmm0s |=| xmm0s[2,3], xmm1s[0,0]
+shufps xmm0, xmm0, 1110b ; xmm0s |=| xmm0s[2,3,0,0]
+shufpd xmm0, xmm1, 01b   ; xmm0d |=| xmm0d[1], xmm1d[0]
+shufpd xmm0, xmm0, 01b   ; xmm0d |=| xmm0d[1,0]
+
+movaps xmm0, [f]         ; xmm0s |=a| [f]
+movups xmm0, [f]         ; xmm0s |=u| [f]
+movapd xmm0, [f]         ; xmm0d |=a| [f]
+movupd xmm0, [f]         ; xmm0d |=u| [f]
+movdqa xmm0, [i]         ; xmm0l |=a| [i]
+movdqu xmm0, [i]         ; xmm0l |=u| [i]
+
+movss xmm0, [f]          ; xmm0s = [f]
+movsd xmm0, [f]          ; xmm0d = [f]
+movq rax, xmm0           ; rax = xmm0l
+movd eax, xmm0           ; eax = xmm0i
+
+movlps xmm0, m64         ; xmm0s[0:2] |=| m64
+movhps xmm0, m64         ; xmm0s[2:4] |=| m64
+movlpd xmm0, m64         ; xmm0d[0] = m64
+movhpd xmm0, m64         ; xmm0d[1] = m64

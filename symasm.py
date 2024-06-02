@@ -1,6 +1,5 @@
 import sys, re
-from enum import IntEnum
-from typing import List, Dict, Callable, NamedTuple
+from typing import List, Dict, Tuple, Callable, NamedTuple
 
 primary_operators = ['=', '+=', '-=', '*=', 'u*=', '/=', 'u/=', r'\=', '++', '--', '&=', '|=', '(+)=', '<<=', '>>=', 'u>>=', '(<<)=', '(>>)=', '><', '<=>', '<&>', 'f<=>', 'uo<=>', '.=']
 primary_operators += ['|' + op + '|' for op in primary_operators]
@@ -12,45 +11,7 @@ inner_binary_operators = {'/', '-', '+'}
 inner_unary_operators = {'-', '~'}
 inner_operators = inner_binary_operators | inner_unary_operators
 
-class Token:
-    class Category(IntEnum): # why ‘Category’: >[https://docs.python.org/3/reference/lexical_analysis.html#other-tokens]:‘the following categories of tokens exist’
-        NAME = 0 # or IDENTIFIER
-        PRIMARY_OPERATOR = 1
-        INNER_OPERATOR = 2
-        CONDITIONAL_OPERATOR = 3
-        DELIMITER = 4
-        NUMERIC_LITERAL = 5
-        NEWLINE = 6
-        COMMENT = 7
-
-    start: int
-    end: int
-    category: Category
-    string: str
-    index: int
-
-    def __init__(self, start, end, category, source, index):
-        self.start = start
-        self.end = end
-        self.category = category
-        self.string = source[start:end]
-        self.index = index
-
-    def __str__(self):
-        return 'Token(' + str(self.category) + ', "' + self.string + '")'
-
-class Error:
-    message: str
-    pos: int
-    end: int
-
-    def __init__(self, message, start, end):
-        self.message = message
-        self.pos = start
-        self.end = end
-
-def error_at_token(message, token):
-    return Error(message, token.start, token.end)
+from impl import *
 
 def tokenize(source, errors: list):
     tokens: List[Token] = []
@@ -124,7 +85,11 @@ def tokenize(source, errors: list):
 
                 tokens.append(Token(lexem_start, i, Token.Category.NUMERIC_LITERAL, source, len(tokens)))
 
-                if is_hex and source[i-1].lower() != 'h':
+                if source[i-1].lower() == 'b':
+                    for j in range(lexem_start, i-1):
+                        if source[j] not in '01':
+                            errors.append(Error('wrong digit in binary number', j, j))
+                elif is_hex and source[i-1].lower() != 'h':
                     errors.append(error_at_token('hexadecimal numbers must end with the `h` suffix', tokens[-1]))
 
                 continue
@@ -255,9 +220,7 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
             operands.append(last_operand)
 
         def eoc(n): # expected operand count
-            if len(operands) != n:
-                if errors is not None:
-                    errors.append(error_at_token(f'`{mnem}` instruction must have {n} operand(s)', line[0]))
+            return coc(n, operands, line[0], errors)
 
         def eoc_range(fr, thru):
             if len(operands) not in range(fr, thru + 1):
@@ -279,8 +242,8 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
                 res.append((line, op1 + ' (+)= ' + op2))
 
         elif mnem in simple_instructions_with_2_operands:
-            eoc(2)
-            res.append((line, op_str(operands[0]) + ' ' + simple_instructions_with_2_operands[mnem] + '= ' + op_str(operands[1])))
+            if eoc(2):
+                res.append((line, op_str(operands[0]) + ' ' + simple_instructions_with_2_operands[mnem] + '= ' + op_str(operands[1])))
 
         elif mnem == 'jmp':
             eoc(1)
@@ -378,6 +341,12 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
             res.append((line, 'cf:' + op_str(operands[0]) + ' (' + ('<<' if mnem == 'rcl' else '>>') + ')= ' + op_str(operands[1])))
 
         else:
+            ops = [op_str(op) for op in operands]
+            s = simd_to_symasm(mnem, ops, line[0], errors)
+            if s != '':
+                res.append((line, s))
+                continue
+
             res.append((line, ''))
 
     return res
@@ -525,6 +494,7 @@ Options:
                                 + infile_str[prev_line_pos:next_line_pos] + "\n"
                                 + re.sub(r'[^\t]', ' ', infile_str[prev_line_pos:e.pos]) + '^'*max(1, e.end - e.pos) + "\n")
             sys.exit(len(errors))
+    check_errors() # this is needed to show error in `shufps xmm0, xmm0, 1120b`, otherwise there will be a `ValueError: invalid literal for int() with base 2: '1120'`
 
     lang = options['input_language']
     if lang == 'auto':
