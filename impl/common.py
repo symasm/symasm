@@ -33,6 +33,12 @@ class Error(NamedTuple):
     pos: int
     end: int
 
+    def __ne__(self, other):
+        return not (self.message == other.message and self.pos == other.pos and self.end == other.end)
+
+    def __str__(self):
+        return f"Error: {self.message}\nPos: {self.pos}\nEnd: {self.end}"
+
 def error_at_token(message, token):
     return Error(message, token.start, token.end)
 
