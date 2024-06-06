@@ -188,7 +188,7 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
     lines = Lines(tokens)
     next_line = lines.next_line()
 
-    def op_str(toks):
+    def op_str(toks) -> str:
         return source[toks[0].start : toks[-1].end]
     res: List[Tuple[List[Token], str]] = []
 
@@ -281,6 +281,23 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
                     continue
 
             res.append((line, op_str(operands[0]) + ' <=> ' + op_str(operands[1])))
+
+        elif mnem[:-1] in ('comis', 'ucomis') and mnem[-1] in 'sd':
+            eoc(2)
+
+            if len(next_line) > 0:
+                next_mnem = next_line[0].string.lower()
+                if next_mnem.startswith('j') and next_mnem[1:] in cc_to_sym:
+                    if next_mnem[1:] in ('z', 'nz'):
+                        next_mnem = next_mnem[:-1] + 'e'
+                    csym = cc_to_sym[next_mnem[1:]]
+                    res.append((line, op_str(operands[0]) + mnem[-1] + ' ' + (csym if mnem[0] != 'u' else 'uo' + csym.lstrip('u')) + ' '
+                       + simd_reg_mem(op_str(operands[1]), mnem[-1]) + ' : ' + op_str(next_line[1:])))
+                    res.append((next_line, '-'))
+                    next_line = lines.next_line()
+                    continue
+
+            res.append((line, op_str(operands[0]) + mnem[-1] + ' ' + 'uo'*(mnem[0] == 'u') + '<=> ' + simd_reg_mem(op_str(operands[1]), mnem[-1])))
 
         elif mnem == 'test':
             eoc(2)

@@ -56,3 +56,19 @@ movlps xmm0, m64         ; xmm0s[0:2] |=| m64
 movhps xmm0, m64         ; xmm0s[2:4] |=| m64
 movlpd xmm0, m64         ; xmm0d[0] = m64
 movhpd xmm0, m64         ; xmm0d[1] = m64
+
+------------------------------------------
+
+comiss  xmm0, xmm1  ; xmm0s <=> xmm1s
+comiss  xmm0, [rsp] ; xmm0s <=> [rsp]
+ucomiss xmm0, xmm1  ; xmm0s uo<=> xmm1s
+ucomisd xmm0, xmm1  ; xmm0d uo<=> xmm1d
+
+comiss xmm0, xmm1   ; xmm0s u> xmm1s : .L4
+ja     .L4          ; -
+
+ucomiss xmm0, xmm1  ; xmm0s uo> xmm1s : .L4
+ja      .L4         ; -
+
+ucomisd xmm0, [rsp] ; xmm0d uo> [rsp] : .L4
+ja      .L4         ; -

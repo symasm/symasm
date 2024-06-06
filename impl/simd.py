@@ -48,6 +48,13 @@ simd_move_instructions = {
     'movhpd' : 'xmm0d[1] = <src>',
 }
 
+def is_simd_reg(operand):
+    oplow = operand.lower()
+    return oplow[0] in 'xyz' and oplow[1:3] == 'mm' and oplow[3:].isdigit()
+
+def simd_reg_mem(operand: str, ty):
+    return operand + ty * is_simd_reg(operand)
+
 def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
     if len(mnem) < 3:
         return ''
