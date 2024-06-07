@@ -48,6 +48,17 @@ simd_move_instructions = {
     'movhpd' : 'xmm0d[1] = <src>',
 }
 
+simd_cmp_float = {
+    'eq' : '==',
+    'lt' : '<',
+    'le' : '<=',
+    'unord' : '',
+    'neq' : '!=',
+    'nlt' : '!<',
+    'nle' : '!<=',
+    'ord' : '',
+}
+
 def is_simd_reg(operand):
     oplow = operand.lower()
     return oplow[0] in 'xyz' and oplow[1:3] == 'mm' and oplow[3:].isdigit()
@@ -115,6 +126,15 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                         return ops[0] + 'd |=| ' + ops[0] + f'd[{i(0)},{i(1)}]'
                     else:
                         return ops[0] + 'd |=| ' + f'{ops[0]}d[{i(0)}], {ops[1]}d[{i(1)}]'
+        elif mnem.startswith('cmp') and mnem[3:-2] in simd_cmp_float:
+            if eoc(2):
+                csym = simd_cmp_float[mnem[3:-2]]
+                op = '.' * (csym == '') + '='
+                if mnem[-2] == 'p':
+                    op = '|' + op + '|'
+                right = simd_reg_mem(ops[1], mnem[-1])
+                right = csym + ' ' + right if csym != '' else mnem[3:-2] + '(' + right + ')'
+                return ops[0] + mnem[-1] + ' ' + op + ' ' + right
 
     elif mnem[0] == 'p':
         if mnem[-1] in simd_int_types and mnem[1:-1] in simd_simple_int_instructions:
@@ -129,5 +149,9 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
         elif mnem[1:4] in ('add', 'sub') and mnem[-1] in 'bw' and mnem[4:-1] in ('s', 'us'):
             if eoc(2):
                 return ops[0] + mnem[-1] + ' |' + mnem[4:-1] + ('+' if mnem[1:4] == 'add' else '-') + '=| ' + ops[1]
+        elif mnem.startswith(('pcmpeq', 'pcmpgt')):
+            if eoc(2):
+                ty = simd_int_types[mnem[-1]]
+                return ops[0] + ty + ' |=| ' + ('==' if mnem[4:6] == 'eq' else '>') + ' ' + simd_reg_mem(ops[1], ty)
 
     return ''
