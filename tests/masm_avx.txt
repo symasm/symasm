@@ -1,0 +1,42 @@
+vmulpd  ymm7, ymm5, ymm6 ; ymm7d v|=| ymm5 * ymm6
+vrcpps  ymm0, ymm1       ; ymm0s v|=| 1 / ymm1
+vpsllw  xmm1, xmm2, xmm3 ; xmm1w v|=| xmm2 << xmm3
+vpaddsb xmm1, xmm2, xmm3 ; xmm1b v|=| xmm2 s+ xmm3
+vpandn  xmm1, xmm2, xmm3 ; xmm1 v|=| ~xmm2 & xmm3
+
+vpor    xmm1, xmm2, xmm3 ; xmm1 v|=| xmm2 | xmm3
+vrcpss  ymm0, ymm1, ymm2 ; ymm0s v|=| 1 / ymm2s[0], ymm1s[1:4]
+vrcpss  ymm0, ymm0, ymm2 ; ymm0s v= 1 / ymm2s
+
+------------------------------------------
+
+vfmadd132ps xmm2, xmm3, xmm4 ; xmm2s v|=| xmm2 * xmm4 + xmm3
+VFMADD213PS xmm1, xmm2, xmm3 ; xmm1s v|=| xmm2 * xmm1 + xmm3
+VFMADD231PS xmm1, xmm2, xmm3 ; xmm1s v|=| xmm2 * xmm3 + xmm1
+
+------------------------------------------
+
+vshufps xmm0, xmm1, xmm1, 1110b ; xmm0s v|=| xmm1s[2,3,0,0]
+vshufps xmm0, xmm1, xmm2, 1110b ; xmm0s v|=| xmm1s[2,3], xmm2s[0,0]
+vshufps ymm0, ymm1, ymm2, 1110b ; ymm0s v|=| ymm1s[2,3], ymm2s[0,0], ymm1s[6,7], ymm2s[4,4]
+vshufps ymm0, ymm1, ymm1, 1110b ; ymm0s v|=| ymm1s[2,3,0,0,6,7,4,4]
+vshufpd xmm0, xmm1, xmm1, 01b   ; xmm0d v|=| xmm1d[1,0]
+vshufpd xmm0, xmm1, xmm2, 01b   ; xmm0d v|=| xmm1d[1], xmm2d[0]
+vshufpd ymm0, ymm1, ymm2, 0001b ; ymm0d v|=| ymm1d[1], ymm2d[0], ymm1d[2], ymm2d[2]
+vshufpd ymm0, ymm1, ymm1, 0001b ; ymm0d v|=| ymm1d[1,0,2,2]
+
+------------------------------------------
+
+vaddss  xmm0, xmm1, xmm2 ; xmm0s v= xmm1 + xmm2
+
+vmovaps ymm0, [f]        ; ymm0s v|=a| [f]
+vmovups ymm0, [f]        ; ymm0s v|=u| [f]
+vmovapd ymm0, [f]        ; ymm0d v|=a| [f]
+
+vmovntpd [f], ymm0       ; [f] v|=nt| ymm0d
+vmovntps [f], ymm0       ; [f] v|=nt| ymm0s
+
+vmovlps xmm0, xmm1, m64  ; xmm0s v|=| m64, xmm1s[2:4]
+vmovlps xmm0, xmm0, m64  ; xmm0s[0:2] v|=| m64
+vmovhps xmm0, xmm1, m64  ; xmm0s v|=| xmm1s[0:2], m64
+vmovhps xmm0, xmm0, m64  ; xmm0s[2:4] v|=| m64

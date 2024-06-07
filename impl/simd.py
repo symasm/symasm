@@ -11,6 +11,13 @@ simd_simple_int_instructions = {
     'add' : '+',
     'sub' : '-',
     'mull': '*',
+    'sll' : '<<',
+    'srl' : 'u>>',
+    'sra' : '>>',
+    'adds' : 's+',
+    'subs' : 's-',
+    'addus' : 'us+',
+    'subus' : 'us-',
 }
 
 simd_int_types = {
@@ -48,6 +55,15 @@ simd_move_instructions = {
     'movhpd' : 'xmm0d[1] = <src>',
 }
 
+avx_move_from_mem_instructions = {
+    'vmovaps' : '<dst>s v|=a| <src>',
+    'vmovups' : '<dst>s v|=u| <src>',
+    'vmovapd' : '<dst>d v|=a| <src>',
+    'vmovupd' : '<dst>d v|=u| <src>',
+    'vmovdqa' : '<dst>l v|=a| <src>',
+    'vmovdqu' : '<dst>l v|=u| <src>',
+}
+
 simd_cmp_float = {
     'eq' : '==',
     'lt' : '<',
@@ -66,7 +82,7 @@ def is_simd_reg(operand):
 def simd_reg_mem(operand: str, ty):
     return operand + ty * is_simd_reg(operand)
 
-def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
+def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
     if len(mnem) < 3:
         return ''
 
@@ -99,10 +115,10 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
             return ops[0] + ' = ' + ops[1] + ('l' if mnem == 'movq' else 'i')
 
     elif mnem[-1] in 'sd' and mnem[-2] in 'sp':
-        if mnem[:3] in simd_simple_float_instructions:
+        if mnem[:-2] in simd_simple_float_instructions:
             if eoc(2):
                 p = '|' * (mnem[-2] == 'p')
-                return ops[0] + mnem[-1] + ' ' + p + simd_simple_float_instructions[mnem[:3]] + '=' + p + ' ' + ops[1]
+                return ops[0] + mnem[-1] + ' ' + p + simd_simple_float_instructions[mnem[:-2]] + '=' + p + ' ' + ops[1]
         elif mnem in simd_simple_register_instructions:
             if eoc(2):
                 if not ops[1].lower().startswith('xmm'):
@@ -137,7 +153,7 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                 return ops[0] + mnem[-1] + ' ' + op + ' ' + right
 
     elif mnem[0] == 'p':
-        if mnem[-1] in simd_int_types and mnem[1:-1] in simd_simple_int_instructions:
+        if mnem[1:-1] in simd_simple_int_instructions and mnem[-1] in simd_int_types:
             if eoc(2):
                 return ops[0] + simd_int_types[mnem[-1]] + ' |' + simd_simple_int_instructions[mnem[1:-1]] + '=| ' + ops[1]
         elif mnem[1:] in simd_simple_int_bitwise_instructions:
@@ -146,12 +162,124 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
         elif mnem == 'pandn':
             if eoc(2):
                 return ops[0] + ' |=| ~' + ops[0] + ' & ' + ops[1]
-        elif mnem[1:4] in ('add', 'sub') and mnem[-1] in 'bw' and mnem[4:-1] in ('s', 'us'):
-            if eoc(2):
-                return ops[0] + mnem[-1] + ' |' + mnem[4:-1] + ('+' if mnem[1:4] == 'add' else '-') + '=| ' + ops[1]
+        # elif mnem[1:4] in ('add', 'sub') and mnem[-1] in 'bw' and mnem[4:-1] in ('s', 'us'):
+        #     if eoc(2):
+        #         return ops[0] + mnem[-1] + ' |' + mnem[4:-1] + ('+' if mnem[1:4] == 'add' else '-') + '=| ' + ops[1]
         elif mnem.startswith(('pcmpeq', 'pcmpgt')):
             if eoc(2):
                 ty = simd_int_types[mnem[-1]]
                 return ops[0] + ty + ' |=| ' + ('==' if mnem[4:6] == 'eq' else '>') + ' ' + simd_reg_mem(ops[1], ty)
+
+    return ''
+
+def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
+    if mnem[0] != 'v':
+        s = sse_to_symasm(mnem, ops, token, errors)
+        if s != '':
+            return s
+        return ''
+
+    def eoc(n): # expected operand count
+        if not coc(n, ops, token, errors):
+            return False
+        if n == 3:
+            if not is_simd_reg(ops[0]) or not is_simd_reg(ops[1]):
+                if errors is not None:
+                    errors.append(error_at_token(f'first two operands of the `{token.string}` instruction must be registers', token))
+                return False
+        elif n == 2:
+            if not is_simd_reg(ops[0]):
+                if errors is not None:
+                    errors.append(error_at_token(f'the first operand of the `{token.string}` instruction must be a register', token))
+                return False
+        return True
+
+    if mnem in avx_move_from_mem_instructions:
+        if eoc(2):
+            return avx_move_from_mem_instructions[mnem].replace('<dst>', ops[0]).replace('<src>', ops[1])
+    
+    elif mnem[1:-1] == 'movntp':
+        if coc(2, ops, token, errors):
+            return ops[0] + ' v|=nt| ' + ops[1] + mnem[-1]
+
+    elif mnem[1:] in ('movlps', 'movhps'):
+        if eoc(3):
+            if mnem[1:] == 'movlps':
+                if ops[0] == ops[1]:
+                    return ops[0] + 's[0:2] v|=| ' + ops[2]
+                else:
+                    return ops[0] + 's v|=| ' + ops[2] + ', ' + ops[1] + 's[2:4]'
+            else:
+                if ops[0] == ops[1]:
+                    return ops[0] + 's[2:4] v|=| ' + ops[2]
+                else:
+                    return ops[0] + 's v|=| ' + ops[1] + 's[0:2], ' + ops[2]
+
+    elif mnem[-1] in 'sd' and mnem[-2] in 'sp':
+        if mnem[1:-2] in simd_simple_float_instructions:
+            if eoc(3):
+                p = '|' * (mnem[-2] == 'p')
+                return ops[0] + mnem[-1] + ' v' + p + '=' + p + ' ' + ops[1] + ' ' + simd_simple_float_instructions[mnem[1:-2]] + ' ' + ops[2]
+        elif mnem[1:-2] == 'rcp':
+            if mnem[-1] != 's':
+                if errors is not None:
+                    errors.append(error_at_token(f'incorrect instruction: `{token.string}`', token))
+                return ''
+            if mnem[-2] == 'p':
+                if eoc(2):
+                    return ops[0] + mnem[-1] + ' v|=| 1 / ' + ops[1]
+            else:
+                if eoc(3):
+                    if ops[0] == ops[1]:
+                        return ops[0] + mnem[-1] + ' v= 1 / ' + simd_reg_mem(ops[2], mnem[-1])
+                    else:
+                        return ops[0] + mnem[-1] + ' v|=| 1 / ' + simd_reg_mem(ops[2], mnem[-1]) + '[0], ' + ops[1] + mnem[-1] + '[1:4]'
+        elif mnem[1:-5] == 'fmadd' and mnem[-5:-2].isdigit():
+            if eoc(3):
+                def o(i):
+                    return ops[int(mnem[-5+i]) - 1]
+                p = '|' * (mnem[-2] == 'p')
+                return ops[0] + mnem[-1] + ' v' + p + '=' + p + ' ' + o(0) + ' * ' + o(1) + ' + ' + o(2)
+        elif mnem[1:-1] == 'shufp':
+            if eoc(4):
+                b = asm_number(ops[3])
+                def i(n):
+                    return (b >> (n * 2)) & 0b11
+                if mnem == 'vshufps':
+                    if ops[0][0].lower() == 'x':
+                        if ops[1] == ops[2]:
+                            return ops[0] + 's v|=| ' + ops[1] + f's[{i(0)},{i(1)},{i(2)},{i(3)}]'
+                        else:
+                            return ops[0] + 's v|=| ' + f'{ops[1]}s[{i(0)},{i(1)}], {ops[2]}s[{i(2)},{i(3)}]'
+                    else:
+                        assert(ops[0][0].lower() == 'y')
+                        if ops[1] == ops[2]:
+                            return ops[0] + 's v|=| ' + ops[1] + f's[{i(0)},{i(1)},{i(2)},{i(3)},{i(0)+4},{i(1)+4},{i(2)+4},{i(3)+4}]'
+                        else:
+                            return ops[0] + 's v|=| ' + f'{ops[1]}s[{i(0)},{i(1)}], {ops[2]}s[{i(2)},{i(3)}], {ops[1]}s[{i(0)+4},{i(1)+4}], {ops[2]}s[{i(2)+4},{i(3)+4}]'
+                else:
+                    assert(mnem == 'vshufpd')
+                    if ops[0][0].lower() == 'x':
+                        if ops[1] == ops[2]:
+                            return ops[0] + 'd v|=| ' + ops[1] + f'd[{i(0)},{i(1)}]'
+                        else:
+                            return ops[0] + 'd v|=| ' + f'{ops[1]}d[{i(0)}], {ops[2]}d[{i(1)}]'
+                    else:
+                        assert(ops[0][0].lower() == 'y')
+                        if ops[1] == ops[2]:
+                            return ops[0] + 'd v|=| ' + ops[1] + f'd[{i(0)},{i(1)},{i(2)+2},{i(3)+2}]'
+                        else:
+                            return ops[0] + 'd v|=| ' + f'{ops[1]}d[{i(0)}], {ops[2]}d[{i(1)}], {ops[1]}d[{i(2)+2}], {ops[2]}d[{i(3)+2}]'
+
+    elif mnem[1] == 'p':
+        if mnem[2:-1] in simd_simple_int_instructions and mnem[-1] in simd_int_types:
+            if eoc(3):
+                return ops[0] + simd_int_types[mnem[-1]] + ' v|=| ' + ops[1] + ' ' + simd_simple_int_instructions[mnem[2:-1]] + ' ' + ops[2]
+        elif mnem[2:] in simd_simple_int_bitwise_instructions:
+            if eoc(3):
+                return ops[0] + ' v|=| ' + ops[1] + ' ' + simd_simple_int_bitwise_instructions[mnem[2:]] + ' ' + ops[2]
+        elif mnem == 'vpandn':
+            if eoc(3):
+                return ops[0] + ' v|=| ~' + ops[1] + ' & ' + ops[2]
 
     return ''
