@@ -80,5 +80,5 @@ pcmpgtw xmm0, xmm2    ; xmm0w |=| > xmm2w
 cmpeqsd xmm0, xmm1    ; xmm0d = == xmm1d
 cmpltsd xmm0, xmm1    ; xmm0d = < xmm1d
 cmpltps xmm0, xmm1    ; xmm0s |=| < xmm1s
-CMPUNORDSS xmm1, xmm2 ; xmm1s .= unord(xmm2s)
-CMPORDPS xmm1, xmm2   ; xmm1s |.=| ord(xmm2s)
+CMPUNORDSS xmm1, xmm2 ; xmm1s .= cmpunord(xmm2s)
+CMPORDPS xmm1, xmm2   ; xmm1s |.=| cmpord(xmm2s)

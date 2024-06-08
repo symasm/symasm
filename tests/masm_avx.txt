@@ -40,3 +40,19 @@ vmovlps xmm0, xmm1, m64  ; xmm0s v|=| m64, xmm1s[2:4]
 vmovlps xmm0, xmm0, m64  ; xmm0s[0:2] v|=| m64
 vmovhps xmm0, xmm1, m64  ; xmm0s v|=| xmm1s[0:2], m64
 vmovhps xmm0, xmm0, m64  ; xmm0s[2:4] v|=| m64
+
+------------------------------------------
+
+vcomiss  xmm0, xmm1  ; xmm0s v<=> xmm1s
+vcomiss  xmm0, [rsp] ; xmm0s v<=> [rsp]
+vucomiss xmm0, xmm1  ; xmm0s vuo<=> xmm1s
+vucomisd xmm0, xmm1  ; xmm0d vuo<=> xmm1d
+
+vcomiss xmm0, xmm1   ; xmm0s vu> xmm1s : .L4
+ja      .L4          ; -
+
+vucomiss xmm0, xmm1  ; xmm0s vuo> xmm1s : .L4
+ja       .L4         ; -
+
+vucomisd xmm0, [rsp] ; xmm0d vuo> [rsp] : .L4
+ja       .L4         ; -

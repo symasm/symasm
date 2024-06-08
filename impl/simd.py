@@ -149,7 +149,7 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                 if mnem[-2] == 'p':
                     op = '|' + op + '|'
                 right = simd_reg_mem(ops[1], mnem[-1])
-                right = csym + ' ' + right if csym != '' else mnem[3:-2] + '(' + right + ')'
+                right = csym + ' ' + right if csym != '' else 'cmp' + mnem[3:-2] + '(' + right + ')'
                 return ops[0] + mnem[-1] + ' ' + op + ' ' + right
 
     elif mnem[0] == 'p':
