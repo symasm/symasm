@@ -64,7 +64,7 @@ avx_move_from_mem_instructions = {
     'vmovdqu' : '<dst>l v|=u| <src>',
 }
 
-simd_cmp_float = {
+sse_cmp_float = {
     'eq' : '==',
     'lt' : '<',
     'le' : '<=',
@@ -74,6 +74,16 @@ simd_cmp_float = {
     'nle' : '!<=',
     'ord' : '',
 }
+simd_cmp_float = dict(list(sse_cmp_float.items()) + list({ # starting with Python 3.9, it will be possible to use the merge operator (`|`)
+    'eq_uq' : 'uo==',                                      # `simd_cmp_float.update()` doesn't work in transpiler [error C2011: 'symasm::CodeBlock1' : 'struct' type redefinition]
+    'nge'   : '!>=',
+    'ngt'   : '!>',
+    'false' : '',
+    'neq_oq': 'o!=',
+    'ge'    : '>=',
+    'gt'    : '>',
+    'true'  : '',
+}.items()))
 
 def is_simd_reg(operand):
     oplow = operand.lower()
@@ -142,9 +152,9 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                         return ops[0] + 'd |=| ' + ops[0] + f'd[{i(0)},{i(1)}]'
                     else:
                         return ops[0] + 'd |=| ' + f'{ops[0]}d[{i(0)}], {ops[1]}d[{i(1)}]'
-        elif mnem.startswith('cmp') and mnem[3:-2] in simd_cmp_float:
+        elif mnem.startswith('cmp') and mnem[3:-2] in sse_cmp_float:
             if eoc(2):
-                csym = simd_cmp_float[mnem[3:-2]]
+                csym = sse_cmp_float[mnem[3:-2]]
                 op = '.' * (csym == '') + '='
                 if mnem[-2] == 'p':
                     op = '|' + op + '|'
@@ -270,6 +280,16 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                             return ops[0] + 'd v|=| ' + ops[1] + f'd[{i(0)},{i(1)},{i(2)+2},{i(3)+2}]'
                         else:
                             return ops[0] + 'd v|=| ' + f'{ops[1]}d[{i(0)}], {ops[2]}d[{i(1)}], {ops[1]}d[{i(2)+2}], {ops[2]}d[{i(3)+2}]'
+        elif mnem.startswith('vcmp') and mnem[4:-2] in simd_cmp_float:
+            if eoc(3):
+                csym = simd_cmp_float[mnem[4:-2]]
+                op = '='
+                if mnem[-2] == 'p':
+                    op = '|' + op + '|'
+                if csym != '':
+                    return ops[0] + mnem[-1] + ' v' + op + ' ' + ops[1] + mnem[-1] + ' ' + csym + ' ' + simd_reg_mem(ops[2], mnem[-1])
+                else:
+                    return ops[0] + mnem[-1] + ' v' + op + ' cmp' + mnem[4:-2] + '(' + ops[1] + ', ' + ops[2] + ')'
 
     elif mnem[1] == 'p':
         if mnem[2:-1] in simd_simple_int_instructions and mnem[-1] in simd_int_types:
@@ -281,5 +301,9 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
         elif mnem == 'vpandn':
             if eoc(3):
                 return ops[0] + ' v|=| ~' + ops[1] + ' & ' + ops[2]
+        elif mnem.startswith(('vpcmpeq', 'vpcmpgt')):
+            if eoc(3):
+                ty = simd_int_types[mnem[-1]]
+                return ops[0] + ty + ' v|=| ' + ops[1] + ty + ' ' + ('==' if mnem[5:7] == 'eq' else '>') + ' ' + simd_reg_mem(ops[2], ty)
 
     return ''

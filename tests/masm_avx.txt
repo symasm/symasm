@@ -56,3 +56,15 @@ ja       .L4         ; -
 
 vucomisd xmm0, [rsp] ; xmm0d vuo> [rsp] : .L4
 ja       .L4         ; -
+
+------------------------------------------
+
+vpcmpeqw xmm0, xmm1, xmm2    ; xmm0w v|=| xmm1w == xmm2w
+vpcmpgtw xmm0, xmm1, xmm2    ; xmm0w v|=| xmm1w > xmm2w
+vcmpltpd xmm0, xmm1, xmm2    ; xmm0d v|=| xmm1d < xmm2d
+vcmpltsd xmm0, xmm1, xmm2    ; xmm0d v= xmm1d < xmm2d
+vcmpltps xmm0, xmm1, xmm2    ; xmm0s v|=| xmm1s < xmm2s
+VCMPUNORDSS xmm1, xmm2, xmm3 ; xmm1s v= cmpunord(xmm2, xmm3)
+VCMPORDPS xmm1, xmm2, xmm3   ; xmm1s v|=| cmpord(xmm2, xmm3)
+VCMPEQ_UQPD xmm1, xmm2, xmm3 ; xmm1d v|=| xmm2d uo== xmm3d
+VCMPFALSEPD xmm1, xmm2, xmm3 ; xmm1d v|=| cmpfalse(xmm2, xmm3)
