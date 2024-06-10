@@ -85,3 +85,24 @@ vminps xmm1, xmm2, xmm3     ; xmm1s v|=| min(xmm2, xmm3)
 vminss xmm1, xmm2, xmm3     ; xmm1s v= min(xmm2, xmm3)
 VPUNPCKLBW ymm1, ymm2, ymm0 ; ymm1b v|=| unpacklo(ymm2, ymm0)
 VPHADDW ymm1,ymm2,ymm3      ; ymm1w v|=| hadd(ymm2, ymm3)
+
+------------------------------------------
+
+vcvtsi2sd xmm3, xmm3, r8d  ; xmm3d v= float(r8i)
+vcvtsi2sd xmm3, xmm4, r8d  ; xmm3d v= float(r8i), xmm4d[1]
+vcvtsi2ss xmm3, xmm4, r8d  ; xmm3s v= float(r8i), xmm4s[1:4]
+vcvtsi2ss xmm3, xmm3, r8d  ; xmm3s v= float(r8i)
+vcvtdq2pd ymm1, xmm2       ; ymm1d v|=| float(xmm2i)
+vcvtdq2pd xmm1, xmm2       ; xmm1d v|=| float(xmm2i[0:2])
+vcvtps2pd ymm6, xmm0       ; ymm6d v|=| convert(xmm0s)
+vcvtps2pd xmm6, xmm0       ; xmm6d v|=| convert(xmm0s[0:2])
+VCVTSS2SD xmm1, xmm2, xmm3 ; xmm1d v= convert(xmm3s[0]), xmm2d[1]
+VCVTSS2SD xmm1, xmm1, xmm3 ; xmm1d v= convert(xmm3s)
+VCVTSD2SS xmm1, xmm2, xmm3 ; xmm1s v= convert(xmm3d[0]), xmm2s[1:4]
+VCVTSD2SS xmm1, xmm1, xmm3 ; xmm1s v= convert(xmm3d)
+VCVTSS2SI r8, xmm1         ; r8 v= int(round(xmm1s))
+VCVTSD2SI r8, xmm1         ; r8 v= int(round(xmm1d))
+VCVTPD2DQ xmm1, xmm2       ; xmm1i[0:2] v|=| int(round(xmm2d)), xmm1i[2:4] |=| 0
+VCVTPD2DQ xmm1, ymm2       ; xmm1i v|=| int(round(ymm2d))
+VCVTPD2PS xmm1, xmm2       ; xmm1s[0:2] v|=| convert(xmm2d), xmm1s[2:4] |=| 0
+VCVTPD2PS xmm1, ymm2       ; xmm1s v|=| convert(ymm2d)

@@ -193,7 +193,18 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
     next_line = lines.next_line()
 
     def op_str(toks) -> str:
-        return source[toks[0].start : toks[-1].end]
+        r = ''
+        writepos = toks[0].start
+        for token in toks:
+            r += source[writepos:token.start]
+            if token.string.startswith(('r', 'R')) and \
+               token.string.endswith  (('d', 'D')) and token.string[1:-1].isdigit():
+                r += token.string[:-1] + chr(ord(token.string[-1]) + (ord('i') - ord('d')))
+            else:
+                r += token.string
+            writepos = token.end
+        return r
+
     res: List[Tuple[List[Token], str]] = []
 
     while True:
@@ -210,7 +221,7 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
             res.append((line, ''))
             continue
 
-        mnem = line[0].string.lower()
+        mnem: str = line[0].string.lower()
 
         operands: List[List[Token]] = []
         last_operand: List[Token] = []
@@ -223,6 +234,8 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
         if len(last_operand) > 0:
             operands.append(last_operand)
 
+        ops = [op_str(op) for op in operands]
+
         def eoc(n): # expected operand count
             return coc(n, operands, line[0], errors)
 
@@ -233,31 +246,27 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
 
         if mnem == 'mov':
             eoc(2)
-            op2 = op_str(operands[1])
-            res.append((line, op_str(operands[0]) + ' = ' + ('(0)' if op2 == '0' else op2)))
+            res.append((line, ops[0] + ' = ' + ('(0)' if ops[1] == '0' else ops[1])))
 
         elif mnem == 'xor':
             eoc(2)
-            op1 = op_str(operands[0])
-            op2 = op_str(operands[1])
-            if op1 == op2:
-                res.append((line, op1 + ' = 0'))
+            if ops[0] == ops[1]:
+                res.append((line, ops[0] + ' = 0'))
             else:
-                res.append((line, op1 + ' (+)= ' + op2))
+                res.append((line, ops[0] + ' (+)= ' + ops[1]))
 
         elif mnem == 'lea':
             eoc(2)
-            op2 = op_str(operands[1])
-            assert(op2.startswith('[')) # ]
-            res.append((line, op_str(operands[0]) + ' = &' + op2))
+            assert(ops[1].startswith('[')) # ]
+            res.append((line, ops[0] + ' = &' + ops[1]))
 
         elif mnem in simple_instructions_with_2_operands:
             if eoc(2):
-                res.append((line, op_str(operands[0]) + ' ' + simple_instructions_with_2_operands[mnem] + '= ' + op_str(operands[1])))
+                res.append((line, ops[0] + ' ' + simple_instructions_with_2_operands[mnem] + '= ' + ops[1]))
 
         elif mnem == 'jmp':
             eoc(1)
-            res.append((line, ':' + op_str(operands[0])))
+            res.append((line, ':' + ops[0]))
 
         elif mnem in ('inc', 'dec'):
             eoc(1)
@@ -267,12 +276,12 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
             if mnem == 'dec' and len(next_line) > 0:
                 next_mnem = next_line[0].string.lower()
                 if next_mnem.startswith('j') and next_mnem[1:] in ('z', 'nz', 'e', 'ne'):
-                    res.append((line, '--' + op_str(operands[0]) + (' !=' if next_mnem[1] == 'n' else ' ==') + ' 0 : ' + op_str(next_line[1:])))
+                    res.append((line, '--' + ops[0] + (' !=' if next_mnem[1] == 'n' else ' ==') + ' 0 : ' + op_str(next_line[1:])))
                     res.append((next_line, '-'))
                     next_line = lines.next_line()
                     continue
 
-            res.append((line, op_str(operands[0]) + ('++' if mnem == 'inc' else '--')))
+            res.append((line, ops[0] + ('++' if mnem == 'inc' else '--')))
 
         elif mnem == 'cmp':
             eoc(2)
@@ -282,15 +291,14 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
                 if next_mnem.startswith('j') and next_mnem[1:] in cc_to_sym:
                     if next_mnem[1:] in ('z', 'nz'):
                         next_mnem = next_mnem[:-1] + 'e'
-                    op2 = op_str(operands[1])
-                    if op2 == '0' and next_mnem[1:] in ('e', 'ne'):
-                        op2 = '(0)'
-                    res.append((line, op_str(operands[0]) + ' ' + cc_to_sym[next_mnem[1:]] + ' ' + op2 + ' : ' + op_str(next_line[1:])))
+                    if ops[1] == '0' and next_mnem[1:] in ('e', 'ne'):
+                        ops[1] = '(0)'
+                    res.append((line, ops[0] + ' ' + cc_to_sym[next_mnem[1:]] + ' ' + ops[1] + ' : ' + op_str(next_line[1:])))
                     res.append((next_line, '-'))
                     next_line = lines.next_line()
                     continue
 
-            res.append((line, op_str(operands[0]) + ' <=> ' + op_str(operands[1])))
+            res.append((line, ops[0] + ' <=> ' + ops[1]))
 
         elif mnem[:-1] in ('comis', 'ucomis', 'vcomis', 'vucomis') and mnem[-1] in 'sd':
             eoc(2)
@@ -305,40 +313,38 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
                     if next_mnem[1:] in ('z', 'nz'):
                         next_mnem = next_mnem[:-1] + 'e'
                     csym = cc_to_sym[next_mnem[1:]]
-                    res.append((line, op_str(operands[0]) + mnem[-1] + ' ' + v + (csym if mnem[0] != 'u' else 'uo' + csym.lstrip('u')) + ' '
-                       + simd_reg_mem(op_str(operands[1]), mnem[-1]) + ' : ' + op_str(next_line[1:])))
+                    res.append((line, ops[0] + mnem[-1] + ' ' + v + (csym if mnem[0] != 'u' else 'uo' + csym.lstrip('u')) + ' '
+                       + simd_reg_mem(ops[1], mnem[-1]) + ' : ' + op_str(next_line[1:])))
                     res.append((next_line, '-'))
                     next_line = lines.next_line()
                     continue
 
-            res.append((line, op_str(operands[0]) + mnem[-1] + ' ' + v + 'uo'*(mnem[0] == 'u') + '<=> ' + simd_reg_mem(op_str(operands[1]), mnem[-1])))
+            res.append((line, ops[0] + mnem[-1] + ' ' + v + 'uo'*(mnem[0] == 'u') + '<=> ' + simd_reg_mem(ops[1], mnem[-1])))
 
         elif mnem == 'test':
             eoc(2)
-            op1 = op_str(operands[0])
-            op2 = op_str(operands[1])
 
-            if op1 == op2 and len(next_line) > 0:
+            if ops[0] == ops[1] and len(next_line) > 0:
                 next_mnem = next_line[0].string.lower()
                 if next_mnem.startswith('j') and next_mnem[1:] in ('z', 'nz', 'e', 'ne'):
-                    res.append((line, op1 + (' !=' if next_mnem[1] == 'n' else ' ==') + ' 0 : ' + op_str(next_line[1:])))
+                    res.append((line, ops[0] + (' !=' if next_mnem[1] == 'n' else ' ==') + ' 0 : ' + op_str(next_line[1:])))
                     res.append((next_line, '-'))
                     next_line = lines.next_line()
                     continue
 
-            res.append((line, op1 + ' <&> ' + op2))
+            res.append((line, ops[0] + ' <&> ' + ops[1]))
 
         elif mnem.startswith('set') and mnem[3:] in cc_to_sym:
             eoc(1)
-            res.append((line, op_str(operands[0]) + ' = 1 if ' + cc_to_sym[mnem[3:]] + ' else 0'))
+            res.append((line, ops[0] + ' = 1 if ' + cc_to_sym[mnem[3:]] + ' else 0'))
 
         elif mnem.startswith('cmov') and mnem[4:] in cc_to_sym:
             eoc(2)
-            res.append((line, op_str(operands[0]) + ' = ' + op_str(operands[1]) + ' if ' + cc_to_sym[mnem[4:]]))
+            res.append((line, ops[0] + ' = ' + ops[1] + ' if ' + cc_to_sym[mnem[4:]]))
 
         elif mnem.startswith('j') and mnem[1:] in cc_to_sym:
             eoc(1)
-            res.append((line, cc_to_sym[mnem[1:]] + ' : ' + op_str(operands[0])))
+            res.append((line, cc_to_sym[mnem[1:]] + ' : ' + ops[0]))
 
         elif mnem in instructions_without_operands:
             eoc(0)
@@ -346,18 +352,18 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
 
         elif mnem in ('neg', 'not'):
             eoc(1)
-            res.append((line, op_str(operands[0]) + ' = ' + ('-' if mnem == 'neg' else '~') + op_str(operands[0])))
+            res.append((line, ops[0] + ' = ' + ('-' if mnem == 'neg' else '~') + ops[0]))
 
         elif mnem == 'imul' and len(operands) > 1:
             eoc_range(1, 3)
             if len(operands) == 2:
-                res.append((line, op_str(operands[0]) + ' *= ' + op_str(operands[1])))
+                res.append((line, ops[0] + ' *= ' + ops[1]))
             else:
-                res.append((line, op_str(operands[0]) + ' = ' + op_str(operands[1]) + ' * ' + op_str(operands[2])))
+                res.append((line, ops[0] + ' = ' + ops[1] + ' * ' + ops[2]))
 
         elif mnem in ('mul', 'imul', 'div', 'idiv'):
             eoc(1)
-            op = op_str(operands[0])
+            op = ops[0]
             regp = op[0]
             u = 'u' * (mnem[0] != 'i')
             o = '*' if mnem.endswith('mul') else '/'
@@ -365,14 +371,13 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
 
         elif mnem in ('adc', 'sbb'):
             eoc(2)
-            res.append((line, op_str(operands[0]) + ' ' + ('+' if mnem == 'adc' else '-') + '= ' + op_str(operands[1]) + ' + cf'))
+            res.append((line, ops[0] + ' ' + ('+' if mnem == 'adc' else '-') + '= ' + ops[1] + ' + cf'))
 
         elif mnem in ('rcl', 'rcr'):
             eoc(2)
-            res.append((line, 'cf:' + op_str(operands[0]) + ' (' + ('<<' if mnem == 'rcl' else '>>') + ')= ' + op_str(operands[1])))
+            res.append((line, 'cf:' + ops[0] + ' (' + ('<<' if mnem == 'rcl' else '>>') + ')= ' + ops[1]))
 
         else:
-            ops = [op_str(op) for op in operands]
             s = simd_to_symasm(mnem, ops, line[0], errors)
             if s != '':
                 res.append((line, s))

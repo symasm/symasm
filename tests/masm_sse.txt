@@ -92,3 +92,17 @@ minss xmm1, xmm2     ; xmm1s .= min(xmm2)
 minps xmm1, xmm2     ; xmm1s |.=| min(xmm2)
 PUNPCKLBW xmm1, xmm2 ; xmm1b |.=| unpacklo(xmm2)
 PHADDW xmm1, xmm2    ; xmm1w |.=| hadd(xmm2)
+
+------------------------------------------
+
+cvtsi2ss xmm2, ecx  ; xmm2s = float(ecx)
+cvtss2si ecx, xmm2  ; ecx = int(round(xmm2s))
+cvttss2si ecx, xmm2 ; ecx = int(xmm2s)
+cvttss2si r8d, xmm2 ; r8i = int(xmm2s)
+cvtss2sd xmm0, xmm1 ; xmm0d = convert(xmm1s)
+cvtdq2ps xmm1, xmm2 ; xmm1s |=| float(xmm2i)
+cvtps2dq xmm1, xmm2 ; xmm1i |=| int(round(xmm2s))
+cvtdq2pd xmm1, xmm2 ; xmm1d |=| float(xmm2i[0:2])
+cvtps2pd xmm6, xmm0 ; xmm6d |=| convert(xmm0s[0:2])
+CVTPD2DQ xmm1, xmm2 ; xmm1i[0:2] |=| int(round(xmm2d)), xmm1i[2:4] |=| 0
+CVTPD2PS xmm1, xmm2 ; xmm1s[0:2] |=| convert(xmm2d), xmm1s[2:4] |=| 0

@@ -123,6 +123,41 @@ def is_simd_reg(operand):
 def simd_reg_mem(operand: str, ty):
     return operand + ty * is_simd_reg(operand)
 
+def simd_cvt(mnem: str, op1, op2, a = ''):
+    assert not 'pi' in mnem, 'MMX instructions are not supported'
+    mnem = mnem.replace('dq', 'pi')
+    assert mnem[-5] == mnem[-2] and mnem[-2] in 'ps' and mnem[-3] == '2'
+
+    v = 'v' * (mnem[0] == 'v')
+    p = '|' * (mnem[-2] == 'p')
+    end = ''
+
+    if not mnem.endswith('si'):
+        op1 += mnem[-1]
+    if mnem[-2] == 'p' and \
+       mnem[-4] == 'd' and op1.lower().startswith('xmm') \
+                       and op2.lower().startswith('xmm'):
+        assert(mnem[-1] != 'd')
+        end = ', ' + op1 + '[2:4] |=| 0'
+        op1 += '[0:2]'
+
+    if mnem[-2] == 'p' and \
+       mnem[-1] == 'd' and op1.lower().startswith('xmm') \
+                       and op2.lower().startswith('xmm'):
+        assert(mnem[-4] != 'd')
+        a = '[0:2]'
+
+    if mnem[-1] in 'sd' and mnem[-4] in 'sd':
+        op2 = 'convert(' + op2 + mnem[-4] + a + ')'
+    elif mnem[-4] == 'i':
+        op2 = 'float(' + op2 + 'i'*len(p) + a + ')'
+    elif mnem.startswith(('cvtt', 'vcvtt')):
+        op2 = 'int(' + op2 + mnem[-4] + ')'
+    else:
+        op2 = 'int(round(' + op2 + mnem[-4] + '))'
+
+    return op1 + ' ' + v + p + '=' + p + ' ' + op2 + end
+
 def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
     if len(mnem) < 3:
         return ''
@@ -159,6 +194,10 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
         if eoc(2):
             iname, ty = simd_special_intrinsics_with_2_operands[mnem]
             return ops[0] + ty + ' |.=| ' + iname + '(' + ops[1] + ')'
+
+    elif mnem[:-5] in ('cvt', 'cvtt'):
+        if coc(2, ops, token, errors):
+            return simd_cvt(mnem, ops[0], ops[1])
 
     elif mnem[-1] in 'sd' and mnem[-2] in 'sp':
         if mnem[:-2] in simd_simple_float_instructions:
@@ -273,6 +312,17 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
         if eoc(3):
             iname, ty = simd_special_intrinsics_with_2_operands[mnem[1:]]
             return ops[0] + ty + ' v|=| ' + iname + '(' + ops[1] + ', ' + ops[2] + ')'
+
+    elif mnem[:-5] in ('vcvt', 'vcvtt'):
+        if mnem.endswith(('ss', 'sd')):
+            if eoc(3):
+                if ops[0] == ops[1]:
+                    return simd_cvt(mnem, ops[0], ops[2])
+                else:
+                    return simd_cvt(mnem, ops[0], ops[2], '[0]'*(mnem[-4] != 'i')) + ', ' + ops[1] + ('s[1:4]' if mnem[-1] == 's' else 'd[1]')
+        else:
+            if coc(2, ops, token, errors):
+                return simd_cvt(mnem, ops[0], ops[1])
 
     elif mnem[-1] in 'sd' and mnem[-2] in 'sp':
         if mnem[1:-2] in simd_simple_float_instructions:
