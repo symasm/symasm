@@ -72,3 +72,16 @@ VCMPFALSEPD xmm1, xmm2, xmm3 ; xmm1d v|=| cmpfalse(xmm2, xmm3)
 ------------------------------------------
 
 vextractf128 xmm5, ymm0, 1 ; xmm5d v|=| ymm0d[2:4]
+
+------------------------------------------
+
+vsqrtss xmm0, xmm0, xmm1    ; xmm0s v= sqrt(xmm1)
+vsqrtss xmm0, xmm1, xmm2    ; xmm0s v= sqrt(xmm2s[0]), xmm1s[1:4]
+vsqrtps xmm0, xmm1          ; xmm0s v|=| sqrt(xmm1)
+vsqrtpd xmm0, xmm1          ; xmm0d v|=| sqrt(xmm1)
+vsqrtsd xmm0, xmm1, xmm2    ; xmm0d v= sqrt(xmm2d[0]), xmm1d[1]
+VPMAXSW xmm1, xmm2, xmm3    ; xmm1w v|=| maxs(xmm2, xmm3)
+vminps xmm1, xmm2, xmm3     ; xmm1s v|=| min(xmm2, xmm3)
+vminss xmm1, xmm2, xmm3     ; xmm1s v= min(xmm2, xmm3)
+VPUNPCKLBW ymm1, ymm2, ymm0 ; ymm1b v|=| unpacklo(ymm2, ymm0)
+VPHADDW ymm1,ymm2,ymm3      ; ymm1w v|=| hadd(ymm2, ymm3)

@@ -82,3 +82,13 @@ cmpltsd xmm0, xmm1    ; xmm0d = < xmm1d
 cmpltps xmm0, xmm1    ; xmm0s |=| < xmm1s
 CMPUNORDSS xmm1, xmm2 ; xmm1s .= cmpunord(xmm2s)
 CMPORDPS xmm1, xmm2   ; xmm1s |.=| cmpord(xmm2s)
+
+------------------------------------------
+
+sqrtss xmm0, xmm1    ; xmm0s = sqrt(xmm1)
+sqrtps xmm0, xmm1    ; xmm0s |=| sqrt(xmm1)
+PMAXSB xmm1, xmm2    ; xmm1b |.=| maxs(xmm2)
+minss xmm1, xmm2     ; xmm1s .= min(xmm2)
+minps xmm1, xmm2     ; xmm1s |.=| min(xmm2)
+PUNPCKLBW xmm1, xmm2 ; xmm1b |.=| unpacklo(xmm2)
+PHADDW xmm1, xmm2    ; xmm1w |.=| hadd(xmm2)

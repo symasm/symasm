@@ -85,6 +85,37 @@ simd_cmp_float = dict(list(sse_cmp_float.items()) + list({ # starting with Pytho
     'true'  : '',
 }.items()))
 
+simd_float_intrinsics_with_1_operand = {
+    'sqrt',
+    'rsqrt',
+}
+
+simd_float_intrinsics_with_2_operands = {
+    'hadd',
+    'min',
+    'max',
+}
+
+simd_int_intrinsics_with_2_operands = {
+    'hadd',
+    'mins',
+    'minu',
+    'maxs',
+    'maxu',
+    'avg',
+}
+
+simd_special_intrinsics_with_2_operands = {
+    'punpcklbw' : ('unpacklo', 'b'),
+    'punpcklwd' : ('unpacklo', 'w'),
+    'punpckldq' : ('unpacklo', 'i'),
+    'punpcklqdq': ('unpacklo', 'l'),
+    'punpckhbw' : ('unpackhi', 'b'),
+    'punpckhwd' : ('unpackhi', 'w'),
+    'punpckhdq' : ('unpackhi', 'i'),
+    'punpckhqdq': ('unpackhi', 'l'),
+}
+
 def is_simd_reg(operand):
     oplow = operand.lower()
     return oplow[0] in 'xyz' and oplow[1:3] == 'mm' and oplow[3:].isdigit()
@@ -124,6 +155,11 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                 return ''
             return ops[0] + ' = ' + ops[1] + ('l' if mnem == 'movq' else 'i')
 
+    elif mnem in simd_special_intrinsics_with_2_operands:
+        if eoc(2):
+            iname, ty = simd_special_intrinsics_with_2_operands[mnem]
+            return ops[0] + ty + ' |.=| ' + iname + '(' + ops[1] + ')'
+
     elif mnem[-1] in 'sd' and mnem[-2] in 'sp':
         if mnem[:-2] in simd_simple_float_instructions:
             if eoc(2):
@@ -136,6 +172,11 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                         errors.append(error_at_token(f'all operands of the `{token.string}` instruction must be registers', token))
                     return ''
                 return simd_simple_register_instructions[mnem].replace('xmm1', ops[1]).replace('<xmm0>', ops[0])
+        elif mnem[:-2] in simd_float_intrinsics_with_1_operand \
+          or mnem[:-2] in simd_float_intrinsics_with_2_operands:
+            if eoc(2):
+                p = '|' * (mnem[-2] == 'p')
+                return ops[0] + mnem[-1] + ' ' + p + '.'*(mnem[:-2] in simd_float_intrinsics_with_2_operands) + '=' + p + ' ' + mnem[:-2] + '(' + ops[1] + ')'
         elif mnem[:-1] == 'shufp':
             if eoc(3):
                 b = asm_number(ops[2])
@@ -166,6 +207,9 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
         if mnem[1:-1] in simd_simple_int_instructions and mnem[-1] in simd_int_types:
             if eoc(2):
                 return ops[0] + simd_int_types[mnem[-1]] + ' |' + simd_simple_int_instructions[mnem[1:-1]] + '=| ' + ops[1]
+        elif mnem[1:-1] in simd_int_intrinsics_with_2_operands and mnem[-1] in simd_int_types:
+            if eoc(2):
+                return ops[0] + simd_int_types[mnem[-1]] + ' |.=| ' + mnem[1:-1] + '(' + ops[1] + ')'
         elif mnem[1:] in simd_simple_int_bitwise_instructions:
             if eoc(2):
                 return ops[0] + ' |' + simd_simple_int_bitwise_instructions[mnem[1:]] + '=| ' + ops[1]
@@ -225,11 +269,31 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                 else:
                     return ops[0] + 's v|=| ' + ops[1] + 's[0:2], ' + ops[2]
 
+    elif mnem[1:] in simd_special_intrinsics_with_2_operands:
+        if eoc(3):
+            iname, ty = simd_special_intrinsics_with_2_operands[mnem[1:]]
+            return ops[0] + ty + ' v|=| ' + iname + '(' + ops[1] + ', ' + ops[2] + ')'
+
     elif mnem[-1] in 'sd' and mnem[-2] in 'sp':
         if mnem[1:-2] in simd_simple_float_instructions:
             if eoc(3):
                 p = '|' * (mnem[-2] == 'p')
                 return ops[0] + mnem[-1] + ' v' + p + '=' + p + ' ' + ops[1] + ' ' + simd_simple_float_instructions[mnem[1:-2]] + ' ' + ops[2]
+        elif mnem[1:-2] in simd_float_intrinsics_with_1_operand:
+            ty = mnem[-1]
+            if mnem[-2] == 'p':
+                if eoc(2):
+                    return ops[0] + ty + ' v|=| ' + mnem[1:-2] + '(' + ops[1] + ')'
+            else:
+                if eoc(3):
+                    if ops[0] == ops[1]:
+                        return ops[0] + ty + ' v= ' + mnem[1:-2] + '(' + ops[2] + ')'
+                    else:
+                        return ops[0] + ty + ' v= ' + mnem[1:-2] + '(' + ops[2] + ty + '[0]' + '), ' + ops[1] + ('s[1:4]' if ty == 's' else 'd[1]')
+        elif mnem[1:-2] in simd_float_intrinsics_with_2_operands:
+            if eoc(3):
+                p = '|' * (mnem[-2] == 'p')
+                return ops[0] + mnem[-1] + ' v' + p + '=' + p + ' ' + mnem[1:-2] + '(' + ops[1] + ', ' + ops[2] + ')'
         elif mnem[1:-2] == 'rcp':
             if mnem[-1] != 's':
                 if errors is not None:
@@ -295,6 +359,9 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
         if mnem[2:-1] in simd_simple_int_instructions and mnem[-1] in simd_int_types:
             if eoc(3):
                 return ops[0] + simd_int_types[mnem[-1]] + ' v|=| ' + ops[1] + ' ' + simd_simple_int_instructions[mnem[2:-1]] + ' ' + ops[2]
+        elif mnem[2:-1] in simd_int_intrinsics_with_2_operands and mnem[-1] in simd_int_types:
+            if eoc(3):
+                return ops[0] + simd_int_types[mnem[-1]] + ' v|=| ' + mnem[2:-1] + '(' + ops[1] + ', ' + ops[2] + ')'
         elif mnem[2:] in simd_simple_int_bitwise_instructions:
             if eoc(3):
                 return ops[0] + ' v|=| ' + ops[1] + ' ' + simd_simple_int_bitwise_instructions[mnem[2:]] + ' ' + ops[2]
