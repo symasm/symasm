@@ -87,3 +87,7 @@ rcl eax, cl       ; cf:eax (<<)= cl
 rcr eax, cl       ; cf:eax (>>)= cl
 adc eax, ebx      ; eax += ebx + cf
 sbb eax, ebx      ; eax -= ebx + cf
+
+------------------------------------------
+
+lea edx, [eax + ebx*2] ; edx = &[eax + ebx*2]

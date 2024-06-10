@@ -306,4 +306,10 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                 ty = simd_int_types[mnem[-1]]
                 return ops[0] + ty + ' v|=| ' + ops[1] + ty + ' ' + ('==' if mnem[5:7] == 'eq' else '>') + ' ' + simd_reg_mem(ops[2], ty)
 
+    elif mnem in ('vextractf128', 'vextracti128'):
+        if coc(3, ops, token, errors):
+            assert(ops[2] == '1')
+            ty = 'd' if mnem == 'vextractf128' else 'l'
+            return simd_reg_mem(ops[0], ty) + ' v|=| ' + ops[1] + ty + '[2:4]'
+
     return ''

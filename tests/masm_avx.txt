@@ -68,3 +68,7 @@ VCMPUNORDSS xmm1, xmm2, xmm3 ; xmm1s v= cmpunord(xmm2, xmm3)
 VCMPORDPS xmm1, xmm2, xmm3   ; xmm1s v|=| cmpord(xmm2, xmm3)
 VCMPEQ_UQPD xmm1, xmm2, xmm3 ; xmm1d v|=| xmm2d uo== xmm3d
 VCMPFALSEPD xmm1, xmm2, xmm3 ; xmm1d v|=| cmpfalse(xmm2, xmm3)
+
+------------------------------------------
+
+vextractf128 xmm5, ymm0, 1 ; xmm5d v|=| ymm0d[2:4]
