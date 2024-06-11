@@ -51,6 +51,8 @@ movss xmm0, [f]          ; xmm0s = [f]
 movsd xmm0, [f]          ; xmm0d = [f]
 movq rax, xmm0           ; rax = xmm0l
 movd eax, xmm0           ; eax = xmm0i
+movq xmm0, rax           ; xmm0l = rax
+movd xmm0, eax           ; xmm0i = eax
 
 movlps xmm0, m64         ; xmm0s[0:2] |=| m64
 movhps xmm0, m64         ; xmm0s[2:4] |=| m64

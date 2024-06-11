@@ -43,6 +43,13 @@ vmovhps xmm0, xmm0, m64  ; xmm0s[2:4] v|=| m64
 
 ------------------------------------------
 
+vmovq rax, xmm0 ; rax v= xmm0l
+vmovd eax, xmm0 ; eax v= xmm0i
+vmovq xmm0, rax ; xmm0l v= rax
+vmovd xmm0, eax ; xmm0i v= eax
+
+------------------------------------------
+
 vcomiss  xmm0, xmm1  ; xmm0s v<=> xmm1s
 vcomiss  xmm0, [rsp] ; xmm0s v<=> [rsp]
 vucomiss xmm0, xmm1  ; xmm0s vuo<=> xmm1s

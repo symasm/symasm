@@ -123,6 +123,18 @@ def is_simd_reg(operand):
 def simd_reg_mem(operand: str, ty):
     return operand + ty * is_simd_reg(operand)
 
+def simd_movq_movd(mnem, ops, token, errors: List[Error] = None):
+    if coc(2, ops, token, errors):
+        v = 'v' * (mnem[0] == 'v')
+        if ops[1].lower().startswith('xmm'):
+            return ops[0] + ' ' + v + '= ' + ops[1] + ('l' if mnem[-1] == 'q' else 'i')
+        elif ops[0].lower().startswith('xmm'):
+            return ops[0] + ('l' if mnem[-1] == 'q' else 'i') + ' ' + v + '= ' + ops[1]
+        else:
+            if errors is not None:
+                errors.append(error_at_token(f'one of the operands of the `{token.string}` instruction must be a xmm register', token))
+    return ''
+
 def simd_cvt(mnem: str, op1, op2, a = ''):
     assert not 'pi' in mnem, 'MMX instructions are not supported'
     mnem = mnem.replace('dq', 'pi')
@@ -183,12 +195,7 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
             return simd_move_instructions[mnem].replace('xmm0', ops[0]).replace('<src>', ops[1])
 
     elif mnem in ('movq', 'movd'):
-        if coc(2, ops, token, errors):
-            if not ops[1].lower().startswith('xmm'):
-                if errors is not None:
-                    errors.append(error_at_token(f'the second operand of the `{token.string}` instruction must be a xmm register', token))
-                return ''
-            return ops[0] + ' = ' + ops[1] + ('l' if mnem == 'movq' else 'i')
+        return simd_movq_movd(mnem, ops, token, errors)
 
     elif mnem in simd_special_intrinsics_with_2_operands:
         if eoc(2):
@@ -307,6 +314,9 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                     return ops[0] + 's[2:4] v|=| ' + ops[2]
                 else:
                     return ops[0] + 's v|=| ' + ops[1] + 's[0:2], ' + ops[2]
+
+    elif mnem in ('vmovq', 'vmovd'):
+        return simd_movq_movd(mnem, ops, token, errors)
 
     elif mnem[1:] in simd_special_intrinsics_with_2_operands:
         if eoc(3):
