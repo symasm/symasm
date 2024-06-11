@@ -41,29 +41,21 @@ simd_simple_register_instructions = {
 }
 
 simd_move_instructions = {
-    'movaps' : 'xmm0s |=a| <src>',
-    'movups' : 'xmm0s |=u| <src>',
-    'movapd' : 'xmm0d |=a| <src>',
-    'movupd' : 'xmm0d |=u| <src>',
-    'movdqa' : 'xmm0l |=a| <src>',
-    'movdqu' : 'xmm0l |=u| <src>',
-    'movss'  : 'xmm0s = <src>',
-    'movsd'  : 'xmm0d = <src>',
+    'movaps' : ('|=a|', 's'),
+    'movups' : ('|=u|', 's'),
+    'movapd' : ('|=a|', 'd'),
+    'movupd' : ('|=u|', 'd'),
+    'movdqa' : ('|=a|', 'l'),
+    'movdqu' : ('|=u|', 'l'),
+    'movss'  : ('=', 's'),
+    'movsd'  : ('=', 'd'),
+}
+
+sse_move_instructions = {
     'movlps' : 'xmm0s[0:2] |=| <src>',
     'movhps' : 'xmm0s[2:4] |=| <src>',
     'movlpd' : 'xmm0d[0] = <src>',
     'movhpd' : 'xmm0d[1] = <src>',
-}
-
-avx_move_instructions = {
-    'vmovaps' : ('<dst> v|=a| <src>', 's'),
-    'vmovups' : ('<dst> v|=u| <src>', 's'),
-    'vmovapd' : ('<dst> v|=a| <src>', 'd'),
-    'vmovupd' : ('<dst> v|=u| <src>', 'd'),
-    'vmovdqa' : ('<dst> v|=a| <src>', 'l'),
-    'vmovdqu' : ('<dst> v|=u| <src>', 'l'),
-    'vmovss'  : ('<dst> v= <src>', 's'),
-    'vmovsd'  : ('<dst> v= <src>', 'd'),
 }
 
 sse_cmp_float = {
@@ -193,8 +185,17 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                 return ops[0] + mnem[-1] + ' |(+)=| ' + ops[1]
 
     elif mnem in simd_move_instructions:
+        if coc(2, ops, token, errors):
+            op, ty = simd_move_instructions[mnem]
+            if is_simd_reg(ops[0]):
+                return ops[0] + ty + ' ' + op + ' ' + ops[1]
+            else:
+                assert(is_simd_reg(ops[1]))
+                return ops[0] + ' ' + op + ' ' + ops[1] + ty
+
+    elif mnem in sse_move_instructions:
         if eoc(2):
-            return simd_move_instructions[mnem].replace('xmm0', ops[0]).replace('<src>', ops[1])
+            return sse_move_instructions[mnem].replace('xmm0', ops[0]).replace('<src>', ops[1])
 
     elif mnem in ('movq', 'movd'):
         return simd_movq_movd(mnem, ops, token, errors)
@@ -296,15 +297,14 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                 return False
         return True
 
-    if mnem in avx_move_instructions:
+    if mnem[1:] in simd_move_instructions:
         if coc(2, ops, token, errors):
-            instruction_template, ty = avx_move_instructions[mnem]
+            op, ty = simd_move_instructions[mnem[1:]]
             if is_simd_reg(ops[0]):
-                ops[0] += ty
+                return ops[0] + ty + ' v' + op + ' ' + ops[1]
             else:
                 assert(is_simd_reg(ops[1]))
-                ops[1] += ty
-            return instruction_template.replace('<dst>', ops[0]).replace('<src>', ops[1])
+                return ops[0] + ' v' + op + ' ' + ops[1] + ty
     
     if mnem[-1] in 'sd' and mnem[:-1] == 'vxorp':
         if eoc(3):

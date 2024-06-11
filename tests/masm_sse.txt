@@ -46,6 +46,8 @@ movapd xmm0, [f]         ; xmm0d |=a| [f]
 movupd xmm0, [f]         ; xmm0d |=u| [f]
 movdqa xmm0, [i]         ; xmm0l |=a| [i]
 movdqu xmm0, [i]         ; xmm0l |=u| [i]
+movaps [f], xmm0         ; [f] |=a| xmm0s
+movaps xmm1, xmm0        ; xmm1s |=a| xmm0
 
 movss xmm0, [f]          ; xmm0s = [f]
 movsd xmm0, [f]          ; xmm0d = [f]
