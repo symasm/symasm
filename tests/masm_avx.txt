@@ -7,6 +7,9 @@ vpandn  xmm1, xmm2, xmm3 ; xmm1 v|=| ~xmm2 & xmm3
 vpor    xmm1, xmm2, xmm3 ; xmm1 v|=| xmm2 | xmm3
 vrcpss  ymm0, ymm1, ymm2 ; ymm0s v|=| 1 / ymm2s[0], ymm1s[1:4]
 vrcpss  ymm0, ymm0, ymm2 ; ymm0s v= 1 / ymm2s
+vxorps xmm0, xmm0, xmm0  ; xmm0s v|=| 0
+vxorpd xmm0, xmm0, xmm0  ; xmm0d v|=| 0
+vxorps xmm0, xmm1, xmm2  ; xmm0s v|=| xmm1 (+) xmm2
 
 ------------------------------------------
 

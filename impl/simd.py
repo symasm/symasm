@@ -298,6 +298,13 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
         if eoc(2):
             return avx_move_from_mem_instructions[mnem].replace('<dst>', ops[0]).replace('<src>', ops[1])
     
+    if mnem[-1] in 'sd' and mnem[:-1] == 'vxorp':
+        if eoc(3):
+            if ops[1] == ops[2]:
+                return ops[0] + mnem[-1] + ' v|=| 0'
+            else:
+                return ops[0] + mnem[-1] + ' v|=| ' + ops[1] + ' (+) ' + ops[2]
+
     elif mnem[1:-1] == 'movntp':
         if coc(2, ops, token, errors):
             return ops[0] + ' v|=nt| ' + ops[1] + mnem[-1]
