@@ -91,3 +91,11 @@ sbb eax, ebx      ; eax -= ebx + cf
 ------------------------------------------
 
 lea edx, [eax + ebx*2] ; edx = &[eax + ebx*2]
+
+------------------------------------------
+
+movsx  rax, BYTE PTR [byte_num]  ; rax = sx(byte[byte_num])
+movsx  rax, WORD PTR [short_num] ; rax = sx(2bytes[short_num])
+movsxd rax, DWORD PTR [int_num]  ; rax = sx(4bytes[int_num])
+mov    eax, DWORD PTR [int_num]  ; eax = 4bytes[int_num]
+movzx  rax, WORD PTR [short_num] ; rax = zx(2bytes[short_num])

@@ -188,6 +188,19 @@ simple_instructions_with_2_operands = {
     'xchg': '><',
 }
 
+asm_sizes = {
+    'byte'  : 'byte',
+    'word'  : '2bytes',
+    'dword' : '4bytes',
+    'qword' : '8bytes',
+    'real4' : '4bytes',
+    'real8' : '8bytes',
+    'real10': '10bytes',
+    'xmmword' : '16bytes',
+    'ymmword' : '32bytes',
+    'zmmword' : '64bytes',
+}
+
 def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
     lines = Lines(tokens)
     next_line = lines.next_line()
@@ -195,14 +208,27 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
     def op_str(toks) -> str:
         r = ''
         writepos = toks[0].start
-        for token in toks:
+        i = 0
+        while i < len(toks):
+            token = toks[i]
             r += source[writepos:token.start]
+
             if token.string.startswith(('r', 'R')) and \
                token.string.endswith  (('d', 'D')) and token.string[1:-1].isdigit():
                 r += token.string[:-1] + chr(ord(token.string[-1]) + (ord('i') - ord('d')))
+
+            elif token.string.lower() in asm_sizes and toks[i+1].string.lower() == 'ptr' and toks[i+2].string == '[': # ]
+                r += asm_sizes[token.string.lower()]
+                i += 2
+                writepos = toks[i].start
+                continue
+
             else:
                 r += token.string
+
             writepos = token.end
+            i += 1
+
         return r
 
     res: List[Tuple[List[Token], str]] = []
@@ -263,6 +289,10 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
         elif mnem in simple_instructions_with_2_operands:
             if eoc(2):
                 res.append((line, ops[0] + ' ' + simple_instructions_with_2_operands[mnem] + '= ' + ops[1]))
+
+        elif mnem in ('movsx', 'movsxd', 'movzx'):
+            if eoc(2):
+                res.append((line, ops[0] + ' = ' + mnem[3:5] + '(' + ops[1] + ')'))
 
         elif mnem == 'jmp':
             eoc(1)
