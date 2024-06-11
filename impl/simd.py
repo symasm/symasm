@@ -55,13 +55,15 @@ simd_move_instructions = {
     'movhpd' : 'xmm0d[1] = <src>',
 }
 
-avx_move_from_mem_instructions = {
-    'vmovaps' : '<dst>s v|=a| <src>',
-    'vmovups' : '<dst>s v|=u| <src>',
-    'vmovapd' : '<dst>d v|=a| <src>',
-    'vmovupd' : '<dst>d v|=u| <src>',
-    'vmovdqa' : '<dst>l v|=a| <src>',
-    'vmovdqu' : '<dst>l v|=u| <src>',
+avx_move_instructions = {
+    'vmovaps' : ('<dst> v|=a| <src>', 's'),
+    'vmovups' : ('<dst> v|=u| <src>', 's'),
+    'vmovapd' : ('<dst> v|=a| <src>', 'd'),
+    'vmovupd' : ('<dst> v|=u| <src>', 'd'),
+    'vmovdqa' : ('<dst> v|=a| <src>', 'l'),
+    'vmovdqu' : ('<dst> v|=u| <src>', 'l'),
+    'vmovss'  : ('<dst> v= <src>', 's'),
+    'vmovsd'  : ('<dst> v= <src>', 'd'),
 }
 
 sse_cmp_float = {
@@ -294,9 +296,15 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                 return False
         return True
 
-    if mnem in avx_move_from_mem_instructions:
-        if eoc(2):
-            return avx_move_from_mem_instructions[mnem].replace('<dst>', ops[0]).replace('<src>', ops[1])
+    if mnem in avx_move_instructions:
+        if coc(2, ops, token, errors):
+            instruction_template, ty = avx_move_instructions[mnem]
+            if is_simd_reg(ops[0]):
+                ops[0] += ty
+            else:
+                assert(is_simd_reg(ops[1]))
+                ops[1] += ty
+            return instruction_template.replace('<dst>', ops[0]).replace('<src>', ops[1])
     
     if mnem[-1] in 'sd' and mnem[:-1] == 'vxorp':
         if eoc(3):
@@ -375,12 +383,12 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                         return ops[0] + mnem[-1] + ' v= 1 / ' + simd_reg_mem(ops[2], mnem[-1])
                     else:
                         return ops[0] + mnem[-1] + ' v|=| 1 / ' + simd_reg_mem(ops[2], mnem[-1]) + '[0], ' + ops[1] + mnem[-1] + '[1:4]'
-        elif mnem[1:-5] == 'fmadd' and mnem[-5:-2].isdigit():
+        elif mnem[1:-5] in ('fmadd', 'fmsub') and mnem[-5:-2].isdigit():
             if eoc(3):
                 def o(i):
                     return ops[int(mnem[-5+i]) - 1]
                 p = '|' * (mnem[-2] == 'p')
-                return ops[0] + mnem[-1] + ' v' + p + '=' + p + ' ' + o(0) + ' * ' + o(1) + ' + ' + o(2)
+                return ops[0] + mnem[-1] + ' v' + p + '=' + p + ' ' + o(0) + ' * ' + o(1) + (' + ' if mnem[1:-5] == 'fmadd' else ' - ') + o(2)
         elif mnem[1:-1] == 'shufp':
             if eoc(4):
                 b = asm_number(ops[3])

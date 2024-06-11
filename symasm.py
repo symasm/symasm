@@ -61,7 +61,7 @@ def tokenize(source, errors: list):
             elif ch in inner_operators:
                 category = Token.Category.INNER_OPERATOR
 
-            elif ch.isalpha() or ch in '_.': # this is NAME/IDENTIFIER
+            elif ch.isalpha() or ch in '_.$': # this is NAME/IDENTIFIER
                 while i < len(source):
                     ch = source[i]
                     if not (ch.isalpha() or ch in '_.@' or '0' <= ch <= '9'):
@@ -201,6 +201,10 @@ asm_sizes = {
     'zmmword' : '64bytes',
 }
 
+def is_symasm_size(sz):
+    sz = sz.lower()
+    return sz in ('byte', 'word') or (sz.endswith('bytes') and sz[:-5].isdigit())
+
 def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
     lines = Lines(tokens)
     next_line = lines.next_line()
@@ -283,7 +287,10 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
 
         elif mnem == 'lea':
             eoc(2)
-            assert(ops[1].startswith('[')) # ]
+            if not ops[1].startswith('['): # ]
+                bracket_pos = ops[1].find('[') # ]
+                assert(bracket_pos != 1 and is_symasm_size(ops[1][:bracket_pos]))
+                ops[1] = ops[1][bracket_pos:]
             res.append((line, ops[0] + ' = &' + ops[1]))
 
         elif mnem in simple_instructions_with_2_operands:
@@ -293,6 +300,10 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
         elif mnem in ('movsx', 'movsxd', 'movzx'):
             if eoc(2):
                 res.append((line, ops[0] + ' = ' + mnem[3:5] + '(' + ops[1] + ')'))
+
+        elif mnem == 'call':
+            eoc(1)
+            res.append((line, ops[0] + '(...)'))
 
         elif mnem == 'jmp':
             eoc(1)

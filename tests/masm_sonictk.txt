@@ -1,0 +1,105 @@
+correlation_avx:
+    xor    r9d, r9d               ; r9i = 0
+    mov    r10, r8                ; r10 = r8
+    vzeroall
+.loop:
+    vmovupd    ymm5, [rcx + r9]   ; ymm5d v|=u| [rcx + r9]
+    vmulpd    ymm7, ymm5, ymm6    ; ymm7d v|=| ymm5 * ymm6
+    vaddpd    ymm0, ymm0, ymm5    ; ymm0d v|=| ymm0 + ymm5
+    add    r9, 64                 ; r9 += 64
+    sub    r10, 8                 ; r10 -= 8
+    jnz    .loop                  ; !z : .loop
+    vhaddpd    ymm0, ymm0, ymm0   ; ymm0d v|=| hadd(ymm0, ymm0)
+    vextractf128    xmm5, ymm0, 1 ; xmm5d v|=| ymm0d[2:4]
+    vaddsd    xmm0, xmm0, xmm5    ; xmm0d v= xmm0 + xmm5
+    vmulsd    xmm6, xmm0, xmm0    ; xmm6d v= xmm0 * xmm0
+    cvtsi2sd    xmm8, r8          ; xmm8d = float(r8)
+    vsubsd    xmm2, xmm2, xmm6    ; xmm2d v= xmm2 - xmm6
+    vsqrtsd    xmm2, xmm2, xmm2   ; xmm2d v= sqrt(xmm2)
+    vdivsd    xmm0, xmm4, xmm2    ; xmm0d v= xmm4 / xmm2
+    ret
+
+------------------------------------------
+
+correlation_ref PROC
+$LN17:
+    sub rsp, 104                        ; rsp -= 104
+    vmovaps XMMWORD PTR [rsp+80], xmm6  ; 16bytes[rsp+80] v|=a| xmm6s
+    xor r10d, r10d                      ; r10i = 0
+    mov r9, rcx                         ; r9 = rcx
+    vxorpd  xmm9, xmm9, xmm9            ; xmm9d v|=| 0
+    cmp r8d, 4                          ; r8i < 4 : $LC12@correlatio
+    jl  $LC12@correlatio                ; -
+    lea eax, DWORD PTR [r8-4]           ; eax = &[r8-4]
+    shr eax, 2                          ; eax u>>= 2
+    inc eax                             ; eax++
+    npad    3
+$LL13@correlatio:
+    vmovsd  xmm3, QWORD PTR [rcx+r11-8] ; xmm3d v= 8bytes[rcx+r11-8]
+    vaddsd  xmm5, xmm5, xmm3            ; xmm5d v= xmm5 + xmm3
+    vmulsd  xmm0, xmm3, xmm3            ; xmm0d v= xmm3 * xmm3
+    jne $LL13@correlatio                ; != : $LL13@correlatio
+$LC12@correlatio:
+    jge SHORT $LN11@correlatio          ; >= : SHORT $LN11@correlatio
+    movsxd  rax, r10d                   ; rax = sx(r10i)
+$LC8@correlatio:
+$LN11@correlatio:
+    vxorps  xmm3, xmm3, xmm3            ; xmm3s v|=| 0
+    vcvtsi2sd xmm3, xmm3, r8d           ; xmm3d v= float(r8i)
+    vsubsd  xmm6, xmm1, xmm0            ; xmm6d v= xmm1 - xmm0
+    call    sqrt                        ; sqrt(...)
+    vdivsd  xmm0, xmm6, xmm0            ; xmm0d v= xmm6 / xmm0
+    add rsp, 104                        ; rsp += 104
+    ret 0
+
+------------------------------------------
+
+correlation_ref PROC
+$LN21:
+    mov rax, rsp                           ; rax = rsp
+    sub rsp, 136                           ; rsp -= 136
+    vmovaps XMMWORD PTR [rax-24], xmm6     ; 16bytes[rax-24] v|=a| xmm6s
+    xor r9d, r9d                           ; r9i = 0
+    vxorpd  xmm8, xmm8, xmm8               ; xmm8d v|=| 0
+    test    r8d, r8d                       ; r8i <&> r8i
+    jle $LN13@correlatio                   ; <= : $LN13@correlatio
+    cmp r8d, 8                             ; r8i u< 8 : $LN9@correlatio
+    jb  $LN9@correlatio                    ; -
+    and eax, -2147483641                   ; eax &= -2147483641
+    jge SHORT $LN19@correlatio             ; >= : SHORT $LN19@correlatio
+    dec eax                                ; eax--
+    or  eax, -8                            ; eax |= -8
+    inc eax                                ; eax++
+$LN19@correlatio:
+    lea rax, QWORD PTR [r11+32]            ; rax = &[r11+32]
+    npad    7
+$LL4@correlatio:
+    vmovupd ymm3, YMMWORD PTR [rcx+rax-32] ; ymm3d v|=u| 32bytes[rcx+rax-32]
+    vfmadd231pd ymm13, ymm2, ymm3          ; ymm13d v|=| ymm2 * ymm3 + ymm13
+    vaddpd  ymm5, ymm5, ymm3               ; ymm5d v|=| ymm5 + ymm3
+    add r9d, 8                             ; r9i += 8
+    jl  SHORT $LL4@correlatio              ; < : SHORT $LL4@correlatio
+    vhaddpd ymm2, ymm0, ymm0               ; ymm2d v|=| hadd(ymm0, ymm0)
+    vextractf128 xmm1, ymm2, 1             ; xmm1d v|=| ymm2d[2:4]
+$LN9@correlatio:
+    movsxd  rcx, r9d                       ; rcx = sx(r9i)
+    shr eax, 2                             ; eax u>>= 2
+$LL15@correlatio:
+    vmovsd  xmm3, QWORD PTR [rdx+rcx-8]    ; xmm3d v= 8bytes[rdx+rcx-8]
+    vmulsd  xmm0, xmm2, xmm3               ; xmm0d v= xmm2 * xmm3
+    vaddsd  xmm5, xmm5, xmm3               ; xmm5d v= xmm5 + xmm3
+    vfmadd231sd xmm7, xmm3, xmm3           ; xmm7d v= xmm3 * xmm3 + xmm7
+    jne $LL15@correlatio                   ; != : $LL15@correlatio
+$LC14@correlatio:
+$LC8@correlatio:
+    vfmadd213sd xmm0, xmm3, xmm7           ; xmm0d v= xmm3 * xmm0 + xmm7
+    vmovapd xmm7, xmm0                     ; xmm7d v|=a| xmm0
+$LN13@correlatio:
+    vxorps  xmm2, xmm2, xmm2               ; xmm2s v|=| 0
+    vcvtsi2sd xmm2, xmm2, r8d              ; xmm2d v= float(r8i)
+    vfmsub213sd xmm4, xmm2, xmm0           ; xmm4d v= xmm2 * xmm4 - xmm0
+    vsubsd  xmm1, xmm2, xmm0               ; xmm1d v= xmm2 - xmm0
+    vsqrtsd xmm3, xmm2, xmm2               ; xmm3d v= sqrt(xmm2d[0]), xmm2d[1]
+    vdivsd  xmm0, xmm4, xmm3               ; xmm0d v= xmm4 / xmm3
+    vzeroupper
+    ret 0
