@@ -88,7 +88,8 @@ def cpu_gp_reg_size(reg):
 
     return 0
 
-def trans_char_keep_case(ch, fr, to):
+Char = str
+def trans_char_keep_case(ch, fr: Char, to: Char) -> Char:
     return chr(ord(ch) + (ord(to) - ord(fr)))
 
 def cpu_gp_reg_4b_to_2b(reg):
