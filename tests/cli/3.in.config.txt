@@ -1,0 +1,1 @@
+prohibit_sse_instructions = yes

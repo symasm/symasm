@@ -206,6 +206,14 @@ def is_symasm_size(sz):
     return sz in ('byte', 'word') or (sz.endswith('bytes') and sz[:-5].isdigit())
 
 sse_instruction_detected = False
+prohibit_sse_instructions = False
+
+def handle_sse_instruction(token, errors: List[Error] = None):
+    global sse_instruction_detected
+    sse_instruction_detected = True
+    if prohibit_sse_instructions:
+        if errors is not None:
+            errors.append(error_at_token('SSE instructions are prohibited', token))
 
 def translate_masm_to_symasm(tokens, source, errors: List[Error] = None, insert_v_for_avx = True):
     lines = Lines(tokens)
@@ -352,7 +360,7 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None, insert_
                 v = 'v' * insert_v_for_avx
                 mnem = mnem[1:]
             else:
-                sse_instruction_detected = True
+                handle_sse_instruction(line[0], errors)
 
             if len(next_line) > 0:
                 next_mnem = next_line[0].string.lower()
@@ -428,7 +436,7 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None, insert_
             s: str = simd_to_symasm(mnem, ops, line[0], errors)
             if s != '':
                 if mnem[0] != 'v':
-                    sse_instruction_detected = True
+                    handle_sse_instruction(line[0], errors)
                 elif not insert_v_for_avx:
                     i = s.find(' v|=')
                     if i == -1:
@@ -483,7 +491,8 @@ Options:
         Option('mode',   'auto', 'Operating mode (annotate, translate)'),
         Option('indent', 'keep', 'Indent (tab, space, 4 spaces, 2 tabs, etc.)'),
         Option('case',   'keep', 'Case (upper, lower)'),
-        Option('detect_mixing_avx_and_sse', 'yes', 'Insert `v` for AVX instructions if mixing was detected (yes, no)'),
+        Option('detect_mixing_avx_and_sse', 'yes', 'Insert `v` for AVX instructions only if mixing was detected (yes, no)'),
+        Option('prohibit_sse_instructions', 'no',  'Show errors for detected SSE instructions (yes, no)'),
     ]
     options: Dict[str, str] = {}
     for option in options_list:
@@ -617,6 +626,8 @@ Options:
 
     def get_comment(src_line):
         return ' ' + tokens[src_line[-1].index + 1].string if src_line[-1].index + 1 < len(tokens) and tokens[src_line[-1].index + 1].category == Token.Category.COMMENT else ''
+
+    prohibit_sse_instructions = options['prohibit_sse_instructions'].lower() == 'yes'
 
     translation = translate_to_symasm(lang, tokens, infile_str, errors)
     check_errors()

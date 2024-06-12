@@ -1,0 +1,4 @@
+Error: SSE instructions are prohibited
+ in line 104
+    cvtsi2sd    xmm8, r8        ; convert n from int to double and store in xmm8
+    ^^^^^^^^

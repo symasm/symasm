@@ -1,0 +1,127 @@
+; From [https://sonictk.github.io/asm_tutorial/]
+
+correlation_avx:
+    ; Store the non-volatile registers to restore them later
+    multipush_ymm ymm6, ymm7, ymm8, ymm9, ymm10, ymm11, ymm12, ymm13, ymm14, ymm15
+
+    ; rcx: x array
+    ; rdx: y array
+    ; r8: num of samples
+    ; r9  : sample counter
+    ; r10: loop counter
+
+    ; ymm0: 4 parts of sumX (work on 4 values at a time)
+    ; ymm1: 4 parts of sumY
+    ; ymm2: 4 parts of sumXX
+    ; ymm3: 4 parts of sumYY
+    ; ymm4: 4 parts of sumXY
+    ; ymm5; 4 x values - later squared
+    ; ymm6: 4 y values - later squared
+    ; ymm7: 4 xy values
+
+    xor    r9d, r9d
+    mov    r10, r8              ; r10 = num of samples (copy)
+
+    vzeroall                    ; zeros the contents of all the ymm registers.
+
+.loop:
+    vmovupd    ymm5, [rcx + r9] ; ymm5 = 4 doubles from x
+    vmovupd    ymm6, [rdx + r9] ; ymm5 = 4 doubles from y
+
+    ; AVX instructions ymm7 = ymm5 * ymm6: (can name same register twice)
+    ; Having 3 operands reduces the register pressure and allows using 2 registers
+    ; as sources in an instruction while preserving their values.
+    vmulpd    ymm7, ymm5, ymm6  ; ymm7 = x * y (calc. this first so we can just act on ymm5/6 in-place later)
+
+    vaddpd    ymm0, ymm0, ymm5  ; ymm0 = sumX (SIMD add the 4 doubles ymm0 + ymm5 and store in ymm0)
+    vaddpd    ymm1, ymm1, ymm6  ; ymm1 = sumY
+
+    vmulpd    ymm5, ymm5, ymm5  ; ymm5 = x * x
+    vmulpd    ymm6, ymm6, ymm6  ; ymm6 = y * y
+
+    vaddpd    ymm2, ymm2, ymm5  ; ymm2 = sumXX
+    vaddpd    ymm3, ymm3, ymm6  ; ymm3 = sumYY
+    vaddpd    ymm4, ymm4, ymm7  ; ymm4 = sumXY
+
+    ; Load the next 256 bits into the registers and apply the same math
+    vmovupd    ymm13, [rcx + r9 + 32] ; ymm13 = next 256 bits after current x
+    vmovupd    ymm14, [rdx + r9 + 32] ; ymm14 = next 256 bits after current y
+
+    vmulpd    ymm15, ymm13, ymm14 ; ymm15 = x * y
+
+    vaddpd    ymm8, ymm8, ymm13 ; ymm8 = sumX
+    vaddpd    ymm9, ymm9, ymm14 ; ymm9 = sumY
+
+    vmulpd    ymm13, ymm13, ymm13 ; ymm13 = x * x
+    vmulpd    ymm14, ymm14, ymm14 ; ymm14 = y * y
+
+    vaddpd    ymm10, ymm10, ymm13 ; ymm10 = sumXX
+    vaddpd    ymm11, ymm11, ymm14 ; ymm11 = sumYY
+    vaddpd    ymm12, ymm12, ymm15 ; ymm12 = sumXY
+
+    add    r9, 64               ; We're doing 32 + 32 bytes per loop iteration (i.e. 8 doubles)
+    sub    r10, 8               ; Decrement the sample counter by the number of doubles processed
+    jnz    .loop                ; Continue looping until all samples have been processed
+
+    vaddpd    ymm0, ymm0, ymm8  ; SIMD add up both sumX totals
+    vaddpd    ymm1, ymm1, ymm9  ; Same for sumY
+
+    vaddpd    ymm2, ymm2, ymm10 ; SIMD add up both sumXX totals
+    vaddpd    ymm3, ymm3, ymm11 ; Same for sumYY
+
+    vaddpd    ymm4, ymm4, ymm12 ; Same for sumXY
+
+    ; vhaddpd differs from haddpd a little; this is the operation (4 x 64bit doubles)
+    ;
+    ;  input    x3            x2             x1           x0
+    ;  input2   y3            y2             y1           y0
+    ;  result   y2 + y3      x2 + x3        y0 + y1      x0 + x1
+
+    vhaddpd    ymm0, ymm0, ymm0 ; ymm0 = sumX (sum up the doubles)
+    vhaddpd    ymm1, ymm1, ymm1 ; ymm1 = sumY
+    vhaddpd    ymm2, ymm2, ymm2 ; ymm2 = sumXX
+    vhaddpd    ymm3, ymm3, ymm3 ; ymm3 = sumYY
+    vhaddpd    ymm4, ymm4, ymm4 ; ymm4 = sumXY
+
+    ; vextractf128: Extracts 128 bits of packed floats from second operand and stores results in dest.
+    ; xmm5 = sumX (copy of the lower 2 doubles)
+    vextractf128    xmm5, ymm0, 1 ; 3rd operand determines offset to start extraction (128bit offset from operand specified)
+    ; add scalar double
+    vaddsd    xmm0, xmm0, xmm5  ; xmm0 = lower 2 doubles of sumX * 2
+
+    vextractf128    xmm6, ymm1, 1 ; Do same thing for sumY
+    vaddsd    xmm1, xmm1, xmm6
+
+    vmulsd    xmm6, xmm0, xmm0  ; xmm6 = sumX * sumX
+    vmulsd    xmm7, xmm1, xmm1  ; xmm7 = sumY * sumY
+
+    vextractf128    xmm8, ymm2, 1 ; xmm8 = sumXX
+    vaddsd    xmm2, xmm2, xmm8  ; xmm2 = sumXX
+
+    vextractf128    xmm9, ymm3, 1 ; xmm9 = sumYY
+    vaddsd    xmm3, xmm3, xmm9    ; xmm3 = sumYY
+
+    cvtsi2sd    xmm8, r8        ; convert n from int to double and store in xmm8
+
+    vmulsd    xmm2, xmm2, xmm8  ; xmm2 = n * sumXX
+    vmulsd    xmm3, xmm3, xmm8  ; xmm3 = n * sumYY
+
+    vsubsd    xmm2, xmm2, xmm6  ; xmm2 = (n * sumXX) - (sumX * sumX)
+    vsubsd    xmm3, xmm3, xmm7  ; xmm3 = (n * sumYY) - (sumY * sumY)
+
+    vmulsd    xmm2, xmm2, xmm3  ; xmm2 = varX * varY
+    vsqrtsd    xmm2, xmm2, xmm2 ; xmm2 = sqrt(varX * varY)
+
+    vextractf128    xmm6, ymm4, 1 ; xmm6 = lower 2 doubles of sumXY
+
+    vaddsd    xmm4, xmm4, xmm6  ; xmm4 = lower 2 doubles of sumXY + other 2 doubles of sumXY
+    vmulsd    xmm4, xmm4, xmm8  ; xmm4 = n * sumXY
+    vmulsd    xmm0, xmm0, xmm1  ; xmm0 = sumX * sumY
+    vsubsd    xmm4, xmm4, xmm0  ; xmm4 = (n * sumXY) - (sumX * sumY)
+
+    vdivsd    xmm0, xmm4, xmm2  ; xmm0 = covXY / sqrt(varX * varY)
+
+    ; Restore the original volatile registers
+    multipop_ymm ymm6, ymm7, ymm8, ymm9, ymm10, ymm11, ymm12, ymm13, ymm14, ymm15
+
+    ret

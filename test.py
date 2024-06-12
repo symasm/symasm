@@ -93,15 +93,29 @@ if __name__ == '__main__':
         else:
             cmd = './'*(os.name != 'nt') + 'symasm'
 
-        if os.system(cmd + f' {fname} -f {fname}.out --config test_symasm_config.txt') != 0:
-            sys.exit('Failure exit code returned for ' + fname)
+        try:
+            os.remove('test_symasm_config.txt')
+        except:
+            pass
+        if os.path.isfile(fname + '.config.txt'):
+            open('test_symasm_config.txt', 'w').write(open(fname + '.config.txt').read())
 
-        if open(fname + '.out').read() != open(fname[:-2] + 'out').read():
+        if os.system(cmd + f' {fname} -f {fname}.out --config test_symasm_config.txt 2>{fname}.err') != 0:
+            if os.path.isfile(fname[:-2] + 'err'):
+                if open(fname + '.err').read() != open(fname[:-2] + 'err').read():
+                    sys.stderr.write('Mismatch for ' + fname + "\n")
+                    os.system(f'kdiff3 {fname}.err {fname[:-2]}err')
+                    sys.exit(1)
+            else:
+                sys.exit('Failure exit code returned for ' + fname)
+
+        elif open(fname + '.out').read() != open(fname[:-2] + 'out').read():
             sys.stderr.write('Mismatch for ' + fname + "\n")
             os.system(f'kdiff3 {fname}.out {fname[:-2]}out')
             sys.exit(1)
 
         os.remove(fname + '.out')
+        os.remove(fname + '.err')
 
     os.remove('test_symasm_config.txt')
 
