@@ -205,7 +205,9 @@ def is_symasm_size(sz):
     sz = sz.lower()
     return sz in ('byte', 'word') or (sz.endswith('bytes') and sz[:-5].isdigit())
 
-def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
+sse_instruction_detected = False
+
+def translate_masm_to_symasm(tokens, source, errors: List[Error] = None, insert_v_for_avx = True):
     lines = Lines(tokens)
     next_line = lines.next_line()
 
@@ -235,6 +237,8 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
 
         return r
 
+    global sse_instruction_detected
+    sse_instruction_detected = False
     res: List[Tuple[List[Token], str]] = []
 
     while True:
@@ -345,8 +349,10 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
             eoc(2)
             v = ''
             if mnem[0] == 'v':
-                v = 'v'
+                v = 'v' * insert_v_for_avx
                 mnem = mnem[1:]
+            else:
+                sse_instruction_detected = True
 
             if len(next_line) > 0:
                 next_mnem = next_line[0].string.lower()
@@ -419,8 +425,17 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
             res.append((line, 'cf:' + ops[0] + ' (' + ('<<' if mnem == 'rcl' else '>>') + ')= ' + ops[1]))
 
         else:
-            s = simd_to_symasm(mnem, ops, line[0], errors)
+            s: str = simd_to_symasm(mnem, ops, line[0], errors)
             if s != '':
+                if mnem[0] != 'v':
+                    sse_instruction_detected = True
+                elif not insert_v_for_avx:
+                    i = s.find(' v|=')
+                    if i == -1:
+                        i = s.find(' v=')
+                    assert(i != -1)
+                    s = s[:i+1] + s[i+2:]
+
                 res.append((line, s))
                 continue
 
@@ -428,10 +443,10 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
 
     return res
 
-def translate_to_symasm(lang, tokens, source, errors: List[Error] = None):
+def translate_to_symasm(lang, tokens, source, errors: List[Error] = None, insert_v_for_avx = True):
     assert(lang == 'masm')
     try:
-        return translate_masm_to_symasm(tokens, source, errors)
+        return translate_masm_to_symasm(tokens, source, errors, insert_v_for_avx)
     except IndexError:
         if errors is None or len(errors) == 0:
             raise
@@ -452,6 +467,7 @@ Options:
   -h, --help            show this help message and exit
   -f OUTPUT_FILE, --file OUTPUT_FILE
                         write output to OUTPUT_FILE (defaults to STDOUT)
+  --config CONFIG       use config file name CONFIG (defaults to symasm_config.txt)
   --annotate            force operating mode to annotate
   --translate           force operating mode to translate''')
         sys.exit(0)
@@ -467,15 +483,20 @@ Options:
         Option('mode',   'auto', 'Operating mode (annotate, translate)'),
         Option('indent', 'keep', 'Indent (tab, space, 4 spaces, 2 tabs, etc.)'),
         Option('case',   'keep', 'Case (upper, lower)'),
+        Option('detect_mixing_avx_and_sse', 'yes', 'Insert `v` for AVX instructions if mixing was detected (yes, no)'),
     ]
     options: Dict[str, str] = {}
     for option in options_list:
         options[option.name] = option.default_value
 
+    symasm_config_file_name = 'symasm_config.txt'
+    if '--config' in sys.argv:
+        symasm_config_file_name = sys.argv[sys.argv.index('--config') + 1]
+
     # Read config
     config = ''
     try:
-        config = open('symasm_config.txt', encoding = 'utf-8-sig').read()
+        config = open(symasm_config_file_name, encoding = 'utf-8-sig').read()
     except:
         pass
     for line in config.split("\n"):
@@ -497,13 +518,13 @@ Options:
         if option is not options_list[-1]:
             new_config += "\n"
     if new_config != config:
-        open('symasm_config.txt', 'w', encoding = 'utf-8').write(new_config)
+        open(symasm_config_file_name, 'w', encoding = 'utf-8').write(new_config)
 
     # Parse command line arguments
     args_infile = sys.stdin
     i = 1
     while i < len(sys.argv):
-        if sys.argv[i] in ('-f', '--file'):
+        if sys.argv[i] in ('-f', '--file', '--config'):
             i += 2
             continue
         if not sys.argv[i].startswith('-'):
@@ -597,9 +618,13 @@ Options:
     def get_comment(src_line):
         return ' ' + tokens[src_line[-1].index + 1].string if src_line[-1].index + 1 < len(tokens) and tokens[src_line[-1].index + 1].category == Token.Category.COMMENT else ''
 
+    translation = translate_to_symasm(lang, tokens, infile_str, errors)
+    check_errors()
+
+    if options['detect_mixing_avx_and_sse'].lower() == 'yes' and not sse_instruction_detected:
+        translation = translate_to_symasm(lang, tokens, infile_str, errors, False)
+
     if mode == 'translate':
-        translation = translate_to_symasm(lang, tokens, infile_str, errors)
-        check_errors()
         for i in range(len(translation)):
             src_line, line = translation[i]
             if line == '-':
@@ -616,8 +641,6 @@ Options:
             out.write(indent_f(src_line) + (line if line != '' else infile_str[src_line[0].start : src_line[-1].end]) + comment + "\n")
 
     elif mode == 'annotate':
-        translation = translate_to_symasm(lang, tokens, infile_str, errors)
-        check_errors()
         longest_src_line_len = max((src_line[-1].end - src_line[0].start for src_line, line in translation if src_line[-1].string != ':'), default = 0)
         for src_line, line in translation:
             if (src_line[-1].string == ':' # labels do not need to be justified (this is for labels with comments)

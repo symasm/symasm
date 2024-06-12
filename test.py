@@ -1,9 +1,10 @@
 import os, tempfile, symasm, sys, re
 from typing import List
 
+for envvar in ['ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432']:
+    os.environ['PATH'] += os.pathsep + os.getenv(envvar, '') + r'\KDiff3'
+
 def kdiff3(str1, str2):
-    for envvar in ['ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432']:
-        os.environ['PATH'] += os.pathsep + os.getenv(envvar, '') + r'\KDiff3'
     command = 'kdiff3'
     for file in [('left', str1), ('right', str2)]:
         full_fname = os.path.join(tempfile.gettempdir(), file[0])
@@ -12,8 +13,8 @@ def kdiff3(str1, str2):
     os.system(command)
 
 for fname in os.listdir('tests'):
-    # if not fname.endswith('.txt'):
-    #     continue
+    if not fname.endswith('.txt'):
+        continue
 
     for test in open('tests/' + fname, encoding = 'utf-8').read().split("\n\n" + '-' * ord('*') + "\n\n"):
         if fname == 'errors.txt':
@@ -80,4 +81,28 @@ for fname in os.listdir('tests'):
                 kdiff3(annotated, test + "\n")
                 sys.exit(1)
 
-print('All tests passed!')
+if __name__ == '__main__':
+    for fname in os.listdir('tests/cli'):
+        if not fname.endswith('.in'):
+            continue
+        fname = 'tests/cli/' + fname
+
+        cmd: str
+        if sys.argv[0].endswith('.py'):
+            cmd = 'python' + '3'*(os.name != 'nt') + ' symasm.py'
+        else:
+            cmd = './'*(os.name != 'nt') + 'symasm'
+
+        if os.system(cmd + f' {fname} -f {fname}.out --config test_symasm_config.txt') != 0:
+            sys.exit('Failure exit code returned for ' + fname)
+
+        if open(fname + '.out').read() != open(fname[:-2] + 'out').read():
+            sys.stderr.write('Mismatch for ' + fname + "\n")
+            os.system(f'kdiff3 {fname}.out {fname[:-2]}out')
+            sys.exit(1)
+
+        os.remove(fname + '.out')
+
+    os.remove('test_symasm_config.txt')
+
+    print('All tests passed!')

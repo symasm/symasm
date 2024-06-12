@@ -1,0 +1,20 @@
+correlation_avx:
+    xor    r9d, r9d               ; r9i = 0
+    mov    r10, r8                ; r10 = r8
+    vzeroall
+.loop:
+    vmovupd    ymm5, [rcx + r9]   ; ymm5d |=u| [rcx + r9]
+    vmulpd    ymm7, ymm5, ymm6    ; ymm7d |=| ymm5 * ymm6
+    vaddpd    ymm0, ymm0, ymm5    ; ymm0d |=| ymm0 + ymm5
+    add    r9, 64                 ; r9 += 64
+    sub    r10, 8                 ; r10 -= 8
+    jnz    .loop                  ; !z : .loop
+    vhaddpd    ymm0, ymm0, ymm0   ; ymm0d |=| hadd(ymm0, ymm0)
+    vextractf128    xmm5, ymm0, 1 ; xmm5d |=| ymm0d[2:4]
+    vaddsd    xmm0, xmm0, xmm5    ; xmm0d = xmm0 + xmm5
+    vmulsd    xmm6, xmm0, xmm0    ; xmm6d = xmm0 * xmm0
+    vcvtsi2sd xmm8, xmm8, r8      ; xmm8d = float(r8)
+    vsubsd    xmm2, xmm2, xmm6    ; xmm2d = xmm2 - xmm6
+    vsqrtsd    xmm2, xmm2, xmm2   ; xmm2d = sqrt(xmm2)
+    vdivsd    xmm0, xmm4, xmm2    ; xmm0d = xmm4 / xmm2
+    ret
