@@ -56,3 +56,53 @@ def asm_number(num):
     if num[-1] == 'b':
         return int(num[:-1], 2)
     return int(num)
+
+cpu_gp_regs_1b = {'al', 'bl', 'cl', 'dl', 'ah', 'bh', 'ch', 'dh'}
+cpu_gp_regs_2b = {'ax', 'bx', 'cx', 'dx', 'si', 'di', 'sp', 'bp'}
+cpu_gp_regs_suffixes = {'b' : 1, 'w' : 2, 'i' : 4}
+
+def cpu_gp_reg_size(reg):
+    reg = reg.lower()
+
+    if len(reg) == 2:
+        if reg in cpu_gp_regs_1b:
+            return 1
+        if reg in cpu_gp_regs_2b:
+            return 2
+        return 0
+
+    if len(reg) == 3:
+        if reg[0] == 'e':
+            return 4 if reg[1:] in cpu_gp_regs_2b else 0
+        if reg[-1] == 'l':
+            return 1 if reg[:-1] in ('si', 'di', 'sp', 'bp') else 0
+
+    if reg[0] == 'r':
+        if reg[1:] in cpu_gp_regs_2b:
+            return 8
+        if reg[-1].isalpha():
+            if not reg[1:-1].isdigit():
+                return 0
+            return cpu_gp_regs_suffixes.get(reg[-1], 0)
+        return 8 if reg[1:].isdigit() else 0
+
+    return 0
+
+def trans_char_keep_case(ch, fr, to):
+    return chr(ord(ch) + (ord(to) - ord(fr)))
+
+def cpu_gp_reg_4b_to_2b(reg):
+    if reg[0] in 'eE':
+        assert(len(reg) == 3)
+        return reg[1:]
+
+    assert(reg[0] in 'rR' and reg[-1] in 'iI' and reg[1:-1].isdigit())
+    return reg[:-1] + trans_char_keep_case(reg[-1], 'i', 'w')
+
+def cpu_gp_reg_4b_to_1b(reg):
+    if reg[0] in 'eE':
+        assert(len(reg) == 3)
+        return (reg[1] if reg[2] in 'xX' else reg[1:3]) + trans_char_keep_case(reg[0], 'e', 'l')
+
+    assert(reg[0] in 'rR' and reg[-1] in 'iI' and reg[1:-1].isdigit())
+    return reg[:-1] + trans_char_keep_case(reg[-1], 'i', 'b')

@@ -110,3 +110,21 @@ cvtdq2pd xmm1, xmm2 ; xmm1d |=| float(xmm2i[0:2])
 cvtps2pd xmm6, xmm0 ; xmm6d |=| convert(xmm0s[0:2])
 CVTPD2DQ xmm1, xmm2 ; xmm1i[0:2] |=| int(round(xmm2d)), xmm1i[2:4] |=| 0
 CVTPD2PS xmm1, xmm2 ; xmm1s[0:2] |=| convert(xmm2d), xmm1s[2:4] |=| 0
+
+------------------------------------------
+
+PINSRB xmm1, eax, 1            ; xmm1b[1] = al
+PINSRB xmm1, esi, 1            ; xmm1b[1] = sil
+PINSRW xmm1, eax, 2            ; xmm1w[2] = ax
+PINSRD xmm1, eax, 1            ; xmm1i[1] = eax
+PINSRQ xmm1, rax, 1            ; xmm1l[1] = rax
+PINSRB xmm1, r8d, 1            ; xmm1b[1] = r8b
+PINSRW xmm1, r8d, 1            ; xmm1w[1] = r8w
+PINSRB xmm1, BYTE PTR [rax], 1 ; xmm1b[1] = byte[rax]
+PEXTRB eax, xmm1, 1            ; eax = xmm1b[1]
+PEXTRW eax, xmm1, 2            ; eax = xmm1w[2]
+PEXTRD eax, xmm1, 1            ; eax = xmm1i[1]
+PEXTRQ rax, xmm1, 1            ; rax = xmm1l[1]
+PEXTRB r8d, xmm1, 1            ; r8i = xmm1b[1]
+PEXTRW r8d, xmm1, 1            ; r8i = xmm1w[1]
+PEXTRB BYTE PTR [rax], xmm1, 1 ; byte[rax] = xmm1b[1]

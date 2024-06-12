@@ -219,7 +219,7 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None):
 
             if token.string.startswith(('r', 'R')) and \
                token.string.endswith  (('d', 'D')) and token.string[1:-1].isdigit():
-                r += token.string[:-1] + chr(ord(token.string[-1]) + (ord('i') - ord('d')))
+                r += token.string[:-1] + trans_char_keep_case(token.string[-1], 'd', 'i')
 
             elif token.string.lower() in asm_sizes and toks[i+1].string.lower() == 'ptr' and toks[i+2].string == '[': # ]
                 r += asm_sizes[token.string.lower()]

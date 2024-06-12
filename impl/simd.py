@@ -272,6 +272,17 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
             if eoc(2):
                 ty = simd_int_types[mnem[-1]]
                 return ops[0] + ty + ' |=| ' + ('==' if mnem[4:6] == 'eq' else '>') + ' ' + simd_reg_mem(ops[1], ty)
+        elif mnem[:-1] == 'pinsr':
+            if eoc(3):
+                if mnem[-1] in 'bw':
+                    sz = cpu_gp_reg_size(ops[1])
+                    if sz != 0:
+                        assert(sz == 4)
+                        ops[1] = cpu_gp_reg_4b_to_1b(ops[1]) if mnem[-1] == 'b' else cpu_gp_reg_4b_to_2b(ops[1])
+                return ops[0] + simd_int_types[mnem[-1]] + '[' + ops[2] + '] = ' + ops[1]
+        elif mnem[:-1] == 'pextr':
+            if coc(3, ops, token, errors):
+                return ops[0] + ' = ' + ops[1] + simd_int_types[mnem[-1]] + '[' + ops[2] + ']'
 
     return ''
 
@@ -447,6 +458,18 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
             if eoc(3):
                 ty = simd_int_types[mnem[-1]]
                 return ops[0] + ty + ' v|=| ' + ops[1] + ty + ' ' + ('==' if mnem[5:7] == 'eq' else '>') + ' ' + simd_reg_mem(ops[2], ty)
+        elif mnem[:-1] == 'vpinsr':
+            if eoc(4):
+                assert(ops[0] == ops[1])
+                if mnem[-1] in 'bw':
+                    sz = cpu_gp_reg_size(ops[2])
+                    if sz != 0:
+                        assert(sz == 4)
+                        ops[2] = cpu_gp_reg_4b_to_1b(ops[2]) if mnem[-1] == 'b' else cpu_gp_reg_4b_to_2b(ops[2])
+                return ops[0] + simd_int_types[mnem[-1]] + '[' + ops[3] + '] v= ' + ops[2]
+        elif mnem[:-1] == 'vpextr':
+            if coc(3, ops, token, errors):
+                return ops[0] + ' v= ' + ops[1] + simd_int_types[mnem[-1]] + '[' + ops[2] + ']'
 
     elif mnem in ('vextractf128', 'vextracti128'):
         if coc(3, ops, token, errors):

@@ -116,3 +116,21 @@ VCVTPD2DQ xmm1, xmm2       ; xmm1i[0:2] v|=| int(round(xmm2d)), xmm1i[2:4] |=| 0
 VCVTPD2DQ xmm1, ymm2       ; xmm1i v|=| int(round(ymm2d))
 VCVTPD2PS xmm1, xmm2       ; xmm1s[0:2] v|=| convert(xmm2d), xmm1s[2:4] |=| 0
 VCVTPD2PS xmm1, ymm2       ; xmm1s v|=| convert(ymm2d)
+
+------------------------------------------
+
+VPINSRB xmm1, xmm1, eax, 1            ; xmm1b[1] v= al
+VPINSRB xmm1, xmm1, esi, 1            ; xmm1b[1] v= sil
+VPINSRW xmm1, xmm1, eax, 2            ; xmm1w[2] v= ax
+VPINSRD xmm1, xmm1, eax, 1            ; xmm1i[1] v= eax
+VPINSRQ xmm1, xmm1, rax, 1            ; xmm1l[1] v= rax
+VPINSRB xmm1, xmm1, r8d, 1            ; xmm1b[1] v= r8b
+VPINSRW xmm1, xmm1, r8d, 1            ; xmm1w[1] v= r8w
+VPINSRB xmm1, xmm1, BYTE PTR [rax], 1 ; xmm1b[1] v= byte[rax]
+VPEXTRB eax, xmm1, 1                  ; eax v= xmm1b[1]
+VPEXTRW eax, xmm1, 2                  ; eax v= xmm1w[2]
+VPEXTRD eax, xmm1, 1                  ; eax v= xmm1i[1]
+VPEXTRQ rax, xmm1, 1                  ; rax v= xmm1l[1]
+VPEXTRB r8d, xmm1, 1                  ; r8i v= xmm1b[1]
+VPEXTRW r8d, xmm1, 1                  ; r8i v= xmm1w[1]
+VPEXTRB BYTE PTR [rax], xmm1, 1       ; byte[rax] v= xmm1b[1]
