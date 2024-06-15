@@ -1,0 +1,68 @@
+fld REAL8 PTR [esp+8]  ; fst.load(8bytes[esp+8])
+fld st(2)              ; fst.load(fst2)
+fldz                   ; fst.load(0)
+fld1                   ; fst.load(1)
+fldpi                  ; fst.load_pi()
+fldl2t                 ; fst.load_log2(10)
+fldl2e                 ; fst.load_log2(e)
+fldlg2                 ; fst.load_lg(2)
+fldln2                 ; fst.load_ln(2)
+fst REAL8 PTR [esp]    ; 8bytes[esp] = fst0
+fstp REAL8 PTR [esp]   ; 8bytes[esp] = fst.pop()
+fstp st                ; fst.pop()
+fincstp                ; fst.top++
+fdecstp                ; fst.top--
+fst st(2)              ; fst2 = fst0
+fstp st(2)             ; fst2 = fst.pop()
+fxch st(2)             ; fst0 >< fst2
+fadd st(0), st(2)      ; fst0 += fst2
+fmulp st(1), st(0)     ; fst1 *= fst.pop()
+fdivp st(1), st(0)     ; fst1 /= fst.pop()
+fdivrp st(1), st(0)    ; fst1 = fst.pop() / fst1
+FSUB ST(0), ST(1)      ; fst0 -= fst1
+FSUB ST(1), ST(0)      ; fst1 -= fst0
+FSUBP ST(1), ST(0)     ; fst1 -= fst.pop()
+FSUB REAL4 PTR [f]     ; fst0 -= 4bytes[f]
+FISUB REAL4 PTR [i]    ; fst0 -= read_int(4bytes[i])
+FSUBR ST(0), ST(1)     ; fst0 = fst1 - fst0
+FSUBR ST(1), ST(0)     ; fst1 = fst0 - fst1
+FSUBRP ST(1), ST(0)    ; fst1 = fst.pop() - fst1
+FSUBR REAL4 PTR [f]    ; fst0 = 4bytes[f] - fst0
+FISUBR REAL4 PTR [i]   ; fst0 = read_int(4bytes[i]) - fst0
+fbld [bcd_num]         ; fst.load_bcd([bcd_num])
+fild QWORD PTR [esp+8] ; fst.load_int(8bytes[esp+8])
+fist QWORD PTR [esp]   ; 8bytes[esp] = int(round(fst0))
+fistp QWORD PTR [esp]  ; 8bytes[esp] = int(round(fst.pop()))
+fisttp QWORD PTR [esp] ; 8bytes[esp] = int(fst.pop())
+fcom st(2)             ; fpu.sw = fst0 <=> fst2
+ftst                   ; fpu.sw = fst0 <=> 0
+fucom st(2)            ; fpu.sw = fst0 uo<=> fst2
+fcomp st(2)            ; fpu.sw = fst.pop() <=> fst2
+fcompp                 ; fpu.sw = fst.pop() <=> fst1, fst.pop()
+fcomi st, st(2)        ; fst0 <=> fst2
+fcomip st, st(2)       ; fst.pop() <=> fst2
+fucomi st, st(2)       ; fst0 uo<=> fst2
+fcmovb st(0), st(1)    ; fst0 = fst1 if u<
+frndint                ; fst0 = round(fst0)
+fsqrt                  ; fst0 = sqrt(fst0)
+fabs                   ; fst0 = abs(fst0)
+fchs                   ; fst0 = -fst0
+fsin                   ; fst0 = sin(fst0)
+fsincos                ; fst1, fst0 = sincos(fst0)
+fstsw ax               ; ax = fpu.sw
+fstcw [mem]            ; [mem] = fpu.cw
+fldcw [mem]            ; fpu.cw = [mem]
+
+------------------------------------------
+
+fcomi st, st(1)   ; fst0 u> fst1 : .L1
+ja    .L1         ; -
+
+fcomip st, st(2)  ; fst.pop() u>= fst2 : .L2
+jae    .L2        ; -
+
+fucomi st, st(3)  ; fst0 uo< fst3 : .L3
+jb     .L3        ; -
+
+fucomip st, st(4) ; fst.pop() uo<= fst4 : .L4
+jbe     .L4       ; -

@@ -376,6 +376,26 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None, insert_
 
             res.append((line, ops[0] + mnem[-1] + ' ' + v + 'uo'*(mnem[0] == 'u') + '<=> ' + simd_reg_mem(ops[1], mnem[-1])))
 
+        elif mnem in ('fcomi', 'fcomip', 'fucomi', 'fucomip'):
+            eoc(2)
+            fpu_operands(ops)
+            assert(ops[0] == 'fst0')
+            if mnem[-1] == 'p':
+                ops[0] = 'fst.pop()'
+
+            if len(next_line) > 0:
+                next_mnem = next_line[0].string.lower()
+                if next_mnem.startswith('j') and next_mnem[1:] in cc_to_sym:
+                    if next_mnem[1:] in ('z', 'nz'):
+                        next_mnem = next_mnem[:-1] + 'e'
+                    csym = cc_to_sym[next_mnem[1:]]
+                    res.append((line, ops[0] + ' ' + (csym if mnem[1] != 'u' else 'uo' + csym.lstrip('u')) + ' ' + ops[1] + ' : ' + op_str(next_line[1:])))
+                    res.append((next_line, '-'))
+                    next_line = lines.next_line()
+                    continue
+
+            res.append((line, ops[0] + ' ' + 'uo'*(mnem[1] == 'u') + '<=> ' + ops[1]))
+
         elif mnem == 'test':
             eoc(2)
 
@@ -431,6 +451,9 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None, insert_
         elif mnem in ('rcl', 'rcr'):
             eoc(2)
             res.append((line, 'cf:' + ops[0] + ' (' + ('<<' if mnem == 'rcl' else '>>') + ')= ' + ops[1]))
+
+        elif mnem[0] == 'f':
+            res.append((line, fpu_to_symasm(mnem, ops, line[0], errors)))
 
         else:
             s: str = simd_to_symasm(mnem, ops, line[0], errors)
