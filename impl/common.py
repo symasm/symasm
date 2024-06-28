@@ -107,3 +107,10 @@ def cpu_gp_reg_4b_to_1b(reg):
 
     assert(reg[0] in 'rR' and reg[-1] in 'iI' and reg[1:-1].isdigit())
     return reg[:-1] + trans_char_keep_case(reg[-1], 'i', 'b')
+
+def is_cpu_gp_reg(reg):
+    return cpu_gp_reg_size(reg) != 0
+
+def size_keyword(bytes):
+    assert(bytes >= 1)
+    return 'byte' if bytes == 1 else f'{bytes}bytes'

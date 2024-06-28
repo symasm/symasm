@@ -61,7 +61,7 @@ def tokenize(source, errors: list):
             elif ch in inner_operators:
                 category = Token.Category.INNER_OPERATOR
 
-            elif ch.isalpha() or ch in '_.$': # this is NAME/IDENTIFIER
+            elif ch.isalpha() or ch in '_.$%': # this is NAME/IDENTIFIER
                 while i < len(source):
                     ch = source[i]
                     if not (ch.isalpha() or ch in '_.@' or '0' <= ch <= '9'):
@@ -138,6 +138,9 @@ def detect_input_language(input_tokens):
         if len(tokens) == 0:
             break
 
+        if len(tokens) == 1 and tokens[0].category == Token.Category.DELIMITER and tokens[0].string == '': # this is an empty line
+            continue
+
         if tokens[-1].string == ':': # it is a label - this syntax is valid in all languages
             continue
 
@@ -148,6 +151,8 @@ def detect_input_language(input_tokens):
         for token in tokens:
             if token.category == Token.Category.PRIMARY_OPERATOR:
                 return 'symasm'
+            if token.string[0] == '%' and is_reg(token.string[1:]):
+                return 'att'
 
     return 'masm'
 
@@ -215,11 +220,11 @@ def handle_sse_instruction(token, errors: List[Error] = None):
         if errors is not None:
             errors.append(error_at_token('SSE instructions are prohibited', token))
 
-def translate_masm_to_symasm(tokens, source, errors: List[Error] = None, insert_v_for_avx = True):
+def translate_to_symasm_impl(lang, tokens, source, errors: List[Error] = None, insert_v_for_avx = True):
     lines = Lines(tokens)
     next_line = lines.next_line()
 
-    def op_str(toks) -> str:
+    def masm_op_str(toks) -> str:
         r = ''
         writepos = toks[0].start
         i = 0
@@ -231,9 +236,30 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None, insert_
                token.string.endswith  (('d', 'D')) and token.string[1:-1].isdigit():
                 r += token.string[:-1] + trans_char_keep_case(token.string[-1], 'd', 'i')
 
-            elif token.string.lower() in asm_sizes and toks[i+1].string.lower() == 'ptr' and toks[i+2].string == '[': # ]
-                r += asm_sizes[token.string.lower()]
-                i += 2
+            elif (token.string.lower() in asm_sizes and toks[i+1].string.lower() == 'ptr' and (toks[i+2].string == '[' or toks[i+3].string == '[')) or token.string == '[': # ]]]
+                if token.string != '[': # ]
+                    r += asm_sizes[token.string.lower()]
+                    i += 2
+                if toks[i].string != '[': # ]
+                    r += '['
+                    r += toks[i].string + '+'
+                    i += 2
+                    if toks[i].string == '0' and toks[i+1].string == '+':
+                        i += 2
+                offset = ''
+                writepos = toks[i].start
+                while i < len(toks):
+                    if toks[i].string in ('+', '-') and toks[i+1].string.isdigit():
+                        offset = toks[i].string + toks[i+1].string
+                        writepos = toks[i+1].end
+                        i += 2
+                        continue
+                    if toks[i].string == ']':
+                        break
+                    r += source[writepos:toks[i].start] + toks[i].string
+                    writepos = toks[i].end
+                    i += 1
+                r += offset
                 writepos = toks[i].start
                 continue
 
@@ -244,6 +270,9 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None, insert_
             i += 1
 
         return r
+
+    def op_str(toks):
+        return source[toks[0].start : toks[-1].end]
 
     global sse_instruction_detected
     sse_instruction_detected = False
@@ -267,16 +296,25 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None, insert_
 
         operands: List[List[Token]] = []
         last_operand: List[Token] = []
+        nesting_level = 0
         for token in line[1:]:
-            if token.string == ',':
+            if token.string == ',' and nesting_level == 0:
                 operands.append(last_operand)
                 last_operand = []
             else:
+                if token.string == '(':
+                    nesting_level += 1
+                elif token.string == ')':
+                    nesting_level -= 1
                 last_operand.append(token)
         if len(last_operand) > 0:
             operands.append(last_operand)
 
-        ops = [op_str(op) for op in operands]
+        ops: List[str] = []
+        if lang == 'att':
+            mnem = translate_att_to_masm(mnem, source, operands, ops, line[0], errors)
+        else:
+            ops = [masm_op_str(op) for op in operands]
 
         def eoc(n): # expected operand count
             return coc(n, operands, line[0], errors)
@@ -288,7 +326,7 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None, insert_
 
         if mnem == 'mov':
             eoc(2)
-            res.append((line, ops[0] + ' = ' + ('(0)' if ops[1] == '0' else ops[1])))
+            res.append((line, ops[0] + ' = ' + ('(0)' if ops[1] == '0' and is_cpu_gp_reg(ops[0]) else ops[1])))
 
         elif mnem == 'xor':
             eoc(2)
@@ -475,9 +513,9 @@ def translate_masm_to_symasm(tokens, source, errors: List[Error] = None, insert_
     return res
 
 def translate_to_symasm(lang, tokens, source, errors: List[Error] = None, insert_v_for_avx = True):
-    assert(lang == 'masm')
+    assert(lang in ('masm', 'att'))
     try:
-        return translate_masm_to_symasm(tokens, source, errors, insert_v_for_avx)
+        return translate_to_symasm_impl(lang, tokens, source, errors, insert_v_for_avx)
     except IndexError:
         if errors is None or len(errors) == 0:
             raise

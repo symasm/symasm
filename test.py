@@ -17,6 +17,19 @@ for fname in os.listdir('tests'):
         continue
 
     for test in open('tests/' + fname, encoding = 'utf-8').read().split("\n\n" + '-' * ord('*') + "\n\n"):
+        def check_errors(errors):
+            if len(errors) > 0:
+                sys.stderr.write('In ' + fname + ":\n\n")
+                for e in errors:
+                    next_line_pos = test.find("\n", e.pos)
+                    if next_line_pos == -1:
+                        next_line_pos = len(test)
+                    prev_line_pos = test.rfind("\n", 0, e.pos) + 1
+                    sys.stderr.write('Error: ' + e.message + "\n"
+                                    + test[prev_line_pos:next_line_pos] + "\n"
+                                    + re.sub(r'[^\t]', ' ', test[prev_line_pos:e.pos]) + '^'*max(1, e.end - e.pos) + "\n")
+                sys.exit(len(errors))
+
         if fname == 'errors.txt':
             source = ''
             source_errors: List[symasm.Error] = []
@@ -54,18 +67,8 @@ for fname in os.listdir('tests'):
         elif fname.startswith('masm'):
             errors: List[symasm.Error] = []
             tokens = symasm.tokenize(test, errors)
-            translation = symasm.translate_masm_to_symasm(tokens, test, errors)
-            if len(errors) > 0:
-                sys.stderr.write('In ' + fname + ":\n\n")
-                for e in errors:
-                    next_line_pos = test.find("\n", e.pos)
-                    if next_line_pos == -1:
-                        next_line_pos = len(test)
-                    prev_line_pos = test.rfind("\n", 0, e.pos) + 1
-                    sys.stderr.write('Error: ' + e.message + "\n"
-                                    + test[prev_line_pos:next_line_pos] + "\n"
-                                    + re.sub(r'[^\t]', ' ', test[prev_line_pos:e.pos]) + '^'*max(1, e.end - e.pos) + "\n")
-                sys.exit(len(errors))
+            translation = symasm.translate_to_symasm('masm', tokens, test, errors)
+            check_errors(errors)
 
             longest_src_line_len = max(src_line[-1].end - src_line[0].start for src_line, line in translation if src_line[-1].string != ':')
             annotated = ''
@@ -80,6 +83,31 @@ for fname in os.listdir('tests'):
                 sys.stderr.write("Mismatch for test:\n" + test + "\nAnnotated:\n" + annotated + "\n")
                 kdiff3(annotated, test + "\n")
                 sys.exit(1)
+
+        elif fname.startswith('att'):
+            errors: List[symasm.Error] = []
+            _, att, masm, syma = test.split("\n\n")
+
+            def translate(lang, src):
+                translation = symasm.translate_to_symasm(lang, symasm.tokenize(src, errors), src, errors)
+                check_errors(errors)
+                return "\n".join(' ' * 8 + (line if line != '' else src[src_line[0].start : src_line[-1].end]) for src_line, line in translation)
+
+            att_translation = translate('att', att)
+            masm_translation = translate('masm', masm)
+
+            if att_translation != masm_translation:
+                sys.stderr.write("Mismatch for test:\n" + test + "\n")
+                kdiff3(att_translation, masm_translation)
+                sys.exit(1)
+
+            if masm_translation != syma:
+                sys.stderr.write("Mismatch for test:\n" + test + "\n")
+                kdiff3(syma, masm_translation)
+                sys.exit(1)
+
+        else:
+            sys.exit('Unknown test file: ' + fname)
 
 if __name__ == '__main__':
     for fname in os.listdir('tests/cli'):

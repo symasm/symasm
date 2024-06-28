@@ -1,0 +1,234 @@
+int intfunc(int a, int b) { return a + b*4 + 3; }
+
+        leal    3(%rdi,%rsi,4), %eax
+        ret
+
+        lea     eax, [rdi+3+rsi*4]
+        ret
+
+        eax = &[rdi+rsi*4+3]
+        ret
+
+------------------------------------------
+
+int intfunc(int a, int b) { return a + b*4 - 3; }
+
+        leal    -3(%rdi,%rsi,4), %eax
+        ret
+
+        lea     eax, [rdi-3+rsi*4]
+        ret
+
+        eax = &[rdi+rsi*4-3]
+        ret
+
+------------------------------------------
+
+int a, b;
+void intfunc() { b = a + 3; }
+
+        movl    a(%rip), %eax
+        addl    $3, %eax
+        movl    %eax, b(%rip)
+        ret
+
+        mov     eax, DWORD PTR a[rip]
+        add     eax, 3
+        mov     DWORD PTR b[rip], eax
+        ret
+
+        eax = 4bytes[a+rip]
+        eax += 3
+        4bytes[b+rip] = eax
+        ret
+
+------------------------------------------
+
+int a, b;
+void intfunc() { b = a * -123; }
+
+        imull   $-123, a(%rip), %eax
+        movl    %eax, b(%rip)
+        ret
+
+        imul    eax, DWORD PTR a[rip], -123
+        mov     DWORD PTR b[rip], eax
+        ret
+
+        eax = 4bytes[a+rip] * -123
+        4bytes[b+rip] = eax
+        ret
+
+------------------------------------------
+
+int int_ptr(int *p) {return *p;}
+
+        movl    (%rdi), %eax
+        ret
+
+        mov     eax, DWORD PTR [rdi]
+        ret
+
+        eax = 4bytes[rdi]
+        ret
+
+------------------------------------------
+
+int arr[100];
+int arri(size_t i) {return arr[i];}
+
+        movl    arr(,%rdi,4), %eax
+        ret
+
+        mov     eax, DWORD PTR arr[0+rdi*4]
+        ret
+
+        eax = 4bytes[arr+rdi*4]
+        ret
+
+------------------------------------------
+
+int arr[100];
+int arri(size_t i) {return arr[i+1];}
+
+        movl    arr+4(,%rdi,4), %eax
+        ret
+
+        mov     eax, DWORD PTR arr[4+rdi*4]
+        ret
+
+        eax = 4bytes[arr+4+rdi*4]
+        ret
+
+------------------------------------------
+
+int arri(char *arr) {return arr[-1];}
+
+        movsbl  -1(%rdi), %eax
+        ret
+
+        movsx   eax, BYTE PTR [rdi-1]
+        ret
+
+        eax = sx(byte[rdi-1])
+        ret
+
+------------------------------------------
+
+int arri(short *arr) {return arr[-1];}
+
+        movswl  -2(%rdi), %eax
+        ret
+
+        movsx   eax, WORD PTR [rdi-2]
+        ret
+
+        eax = sx(2bytes[rdi-2])
+        ret
+
+------------------------------------------
+
+int arri(int *a, size_t i) {return a[i];}
+
+        movl    (%rdi,%rsi,4), %eax
+        ret
+
+        mov     eax, DWORD PTR [rdi+rsi*4]
+        ret
+
+        eax = 4bytes[rdi+rsi*4]
+        ret
+
+------------------------------------------
+
+char arri(char *a, size_t i) {return a[i];}
+
+        movzbl  (%rdi,%rsi), %eax
+        ret
+
+        movzx   eax, BYTE PTR [rdi+rsi]
+        ret
+
+        eax = zx(byte[rdi+rsi])
+        ret
+
+------------------------------------------
+
+int arri(char *a, size_t i) {return a[i];}
+
+        movsbl  (%rdi,%rsi), %eax
+        ret
+
+        movsx   eax, BYTE PTR [rdi+rsi]
+        ret
+
+        eax = sx(byte[rdi+rsi])
+        ret
+
+------------------------------------------
+
+int c_to_i(char c) {return c;}
+
+        movsbl  %dil, %eax
+        ret
+
+        movsx   eax, dil
+        ret
+
+        eax = sx(dil)
+        ret
+
+------------------------------------------
+
+void set_byte(char *p) {*p = 0;}
+
+        movb    $0, (%rdi)
+        ret
+
+        mov     BYTE PTR [rdi], 0
+        ret
+
+        byte[rdi] = 0
+        ret
+
+------------------------------------------
+
+void set_2bytes(short *p) {*p = 0;}
+
+        xorl    %eax, %eax
+        movw    %ax, (%rdi)
+        ret
+
+        xor     eax, eax
+        mov     WORD PTR [rdi], ax
+        ret
+
+        eax = 0
+        2bytes[rdi] = ax
+        ret
+
+------------------------------------------
+
+void set_4bytes(int *p) {*p = 0;}
+
+        movl    $0, (%rdi)
+        ret
+
+        mov     DWORD PTR [rdi], 0
+        ret
+
+        4bytes[rdi] = 0
+        ret
+
+------------------------------------------
+
+void set_8bytes(long *p) {*p = 0;}
+
+        movq    $0, (%rdi)
+        ret
+
+        mov     QWORD PTR [rdi], 0
+        ret
+
+        8bytes[rdi] = 0
+        ret

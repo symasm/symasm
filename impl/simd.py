@@ -478,3 +478,6 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
             return simd_reg_mem(ops[0], ty) + ' v|=| ' + ops[1] + ty + '[2:4]'
 
     return ''
+
+def is_reg(reg):
+    return is_cpu_gp_reg(reg) or is_simd_reg(reg)
