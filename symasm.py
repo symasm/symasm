@@ -220,7 +220,7 @@ def handle_sse_instruction(token, errors: List[Error] = None):
         if errors is not None:
             errors.append(error_at_token('SSE instructions are prohibited', token))
 
-def translate_to_symasm_impl(lang, tokens, source, errors: List[Error] = None, insert_v_for_avx = True):
+def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = None, insert_v_for_avx = True):
     lines = Lines(tokens)
     next_line = lines.next_line()
 
@@ -250,7 +250,7 @@ def translate_to_symasm_impl(lang, tokens, source, errors: List[Error] = None, i
                 writepos = toks[i].start
                 while i < len(toks):
                     if toks[i].string in ('+', '-') and toks[i+1].string.isdigit():
-                        offset = toks[i].string + toks[i+1].string
+                        offset = source[toks[i-1].end:toks[i+1].end]
                         writepos = toks[i+1].end
                         i += 2
                         continue
