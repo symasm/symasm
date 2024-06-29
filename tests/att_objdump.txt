@@ -1,0 +1,28 @@
+// >[https://stackoverflow.com/questions/61781889/objdump-do-not-show-machine-code-but-show-asm <- google:‘objdump strip machine code’]:‘Use `cut` command’
+// >[https://stackoverflow.com/questions/68630162/make-objdump-use-an-operand-size-suffix-like-l-on-every-mnemonic-even-when-its <- google:‘objdump suffix’]:‘-M suffix’
+// gcc-9 -c -O2 test.c && (objdump -d --no-show-raw-insn test.o -M suffix | cut -d ':' -f 2-) && (objdump -d --no-show-raw-insn test.o -M intel | cut -d ':' -f 2-)
+int compare(int a, int b)
+{
+    return a < b ? -1 : a > b ? 1 : 0;
+}
+
+        xorl   %eax,%eax
+        cmpl   %esi,%edi
+        movl   $0xffffffff,%edx
+        setg   %al
+        cmovll %edx,%eax
+        retq   
+
+        xor    eax,eax
+        cmp    edi,esi
+        mov    edx,0xffffffff
+        setg   al
+        cmovl  eax,edx
+        ret    
+
+        eax = 0
+        edi <=> esi
+        edx = 0ffffffffh
+        al = 1 if > else 0
+        eax = edx if <
+        ret

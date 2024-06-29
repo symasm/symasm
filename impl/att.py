@@ -15,6 +15,9 @@ def fix_reg(reg):
     else:
         return reg
 
+def is_att_number(s):
+    return s.startswith(('0x', '0X')) or s.isdigit()
+
 def fix_imm(imm):
     if imm.startswith(('0x', '0X')):
         return '0'*(not imm[2].isdigit()) + imm[2:] + 'h'
@@ -31,10 +34,10 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
 
         if toks[0].string[0] == '$': # immediate/‘numeric constant’
             if len(toks) == 1:
-                assert(toks[0].string[1:].isdigit())
+                assert(is_att_number(toks[0].string[1:]))
                 r = fix_imm(toks[0].string[1:])
             else:
-                assert(len(toks) == 3 and len(toks[0].string) == 1 and toks[1].string == '-' and toks[2].string.isdigit())
+                assert(len(toks) == 3 and len(toks[0].string) == 1 and toks[1].string == '-' and is_att_number(toks[2].string))
                 r = '-' + fix_imm(toks[2].string)
 
         elif toks[0].string[0] == '%': # register
@@ -105,6 +108,8 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
         ops.append(r)
 
     if mnem.startswith(('set', 'cmov')):
+        if mnem.startswith('cmov') and mnem[-1] == 'l' and len(mnem) > 5:
+            return mnem[:-1]
         return mnem
 
     if reg_size != 0:

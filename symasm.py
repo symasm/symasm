@@ -71,6 +71,9 @@ def tokenize(source, errors: list):
 
             elif '0' <= ch <= '9' or (ch == '.' and '0' <= source[i:i+1] <= '9'): # this is NUMERIC_LITERAL
                 is_hex = False
+                if i < len(source) and source[i] in 'xX':
+                    is_hex = True
+                    i += 1
                 while i < len(source) and is_hexadecimal_digit(source[i]):
                     if not ('0' <= source[i] <= '9'):
                         is_hex = True
@@ -89,7 +92,7 @@ def tokenize(source, errors: list):
                     for j in range(lexem_start, i-1):
                         if source[j] not in '01':
                             errors.append(Error('wrong digit in binary number', j, j))
-                elif is_hex and source[i-1].lower() != 'h':
+                elif is_hex and (source[i-1].lower() != 'h' and source[lexem_start+1] not in 'xX'):
                     errors.append(error_at_token('hexadecimal numbers must end with the `h` suffix', tokens[-1]))
 
                 continue
@@ -177,6 +180,7 @@ instructions_without_operands = {
     'cwd' : 'dx:ax = sx(ax)',
     'cdq' : 'edx:eax = sx(eax)',
     'cqo' : 'rdx:rax = sx(rax)',
+    'retq': 'ret',
 }
 
 simple_instructions_with_2_operands = {
@@ -264,7 +268,7 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
                 continue
 
             else:
-                r += token.string
+                r += fix_imm(token.string)
 
             writepos = token.end
             i += 1
