@@ -17,7 +17,7 @@ for fname in os.listdir('tests'):
         continue
 
     for test in open('tests/' + fname, encoding = 'utf-8').read().split("\n\n" + '-' * ord('*') + "\n\n"):
-        def check_errors(errors):
+        def check_errors(errors, test):
             if len(errors) > 0:
                 sys.stderr.write('In ' + fname + ":\n\n")
                 for e in errors:
@@ -68,7 +68,7 @@ for fname in os.listdir('tests'):
             errors: List[symasm.Error] = []
             tokens = symasm.tokenize(test, errors)
             translation = symasm.translate_to_symasm('masm', tokens, test, errors)
-            check_errors(errors)
+            check_errors(errors, test)
 
             longest_src_line_len = max(src_line[-1].end - src_line[0].start for src_line, line in translation if src_line[-1].string != ':')
             annotated = ''
@@ -90,7 +90,7 @@ for fname in os.listdir('tests'):
 
             def translate(lang, src):
                 translation = symasm.translate_to_symasm(lang, symasm.tokenize(src, errors), src, errors)
-                check_errors(errors)
+                check_errors(errors, src)
                 return "\n".join(' ' * 8 + (line if line != '' else src[src_line[0].start : src_line[-1].end]) for src_line, line in translation)
 
             att_translation = translate('att', att)

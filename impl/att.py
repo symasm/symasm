@@ -104,6 +104,9 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
 
         ops.append(r)
 
+    if mnem.startswith(('set', 'cmov')):
+        return mnem
+
     if reg_size != 0:
         if mnem[-1] != {1:'b', 2:'w', 4:'l', 8:'q', 10:'t', 16:'o'}[reg_size]:
             if errors is not None:

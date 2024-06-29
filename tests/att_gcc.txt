@@ -1,3 +1,33 @@
+// gcc-9 -O2 test.c -S
+// gcc-9 -O2 test.c -S -masm=intel
+int compare(int a, int b)
+{
+    return a < b ? -1 : a > b ? 1 : 0;
+}
+
+        xorl    %eax, %eax
+        cmpl    %esi, %edi
+        movl    $-1, %edx
+        setg    %al
+        cmovl   %edx, %eax
+        ret
+
+        xor     eax, eax
+        cmp     edi, esi
+        mov     edx, -1
+        setg    al
+        cmovl   eax, edx
+        ret
+
+        eax = 0
+        edi <=> esi
+        edx = -1
+        al = 1 if > else 0
+        eax = edx if <
+        ret
+
+------------------------------------------
+
 int intfunc(int a, int b) { return a + b*4 + 3; }
 
         leal    3(%rdi,%rsi,4), %eax
