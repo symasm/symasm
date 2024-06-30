@@ -91,7 +91,7 @@ for fname in os.listdir('tests'):
             def translate(lang, src):
                 translation = symasm.translate_to_symasm(lang, symasm.tokenize(src, errors), src, errors)
                 check_errors(errors, src)
-                return "\n".join(' ' * (src_line[-1].string != ':') * 8 + (line if line != '' else src[src_line[0].start : src_line[-1].end]) for src_line, line in translation)
+                return "\n".join((' ' * 8 if src_line[-1].string != ':' else '') + (line if line != '' else src[src_line[0].start : src_line[-1].end]) for src_line, line in translation)
 
             att_translation = translate('att', att)
             masm_translation = translate('masm', masm)
