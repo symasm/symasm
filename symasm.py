@@ -592,7 +592,7 @@ Options:
         if option is not options_list[-1]:
             new_config += "\n"
     if new_config != config:
-        open(symasm_config_file_name, 'w', encoding = 'utf-8').write(new_config)
+        open(symasm_config_file_name, 'w', encoding = 'utf-8', newline = "\n").write(new_config)
 
     # Parse command line arguments
     args_infile = sys.stdin

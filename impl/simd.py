@@ -316,7 +316,7 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
             else:
                 assert(is_simd_reg(ops[1]))
                 return ops[0] + ' v' + op + ' ' + ops[1] + ty
-    
+
     if mnem[-1] in 'sd' and mnem[:-1] == 'vxorp':
         if eoc(3):
             if ops[1] == ops[2]:

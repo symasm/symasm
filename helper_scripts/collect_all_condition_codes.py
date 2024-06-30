@@ -86,4 +86,4 @@ print(textwrap.fill('cc_to_sym = ' + repr(dict(cc_to_sym)).lower()).replace('_==
 print()
 print(textwrap.fill('cc_to_sym.update(' + repr(dict(acc_to_sym)).lower()) + ')')
 
-# >[https://www.felixcloutier.com/x86/setcc]:‘Appendix B, “EFLAGS Condition Codes,” in the Intel® 64 and IA-32 Architectures Software Developer’s Manual, Volume 1, shows the alternate mnemonics for various test conditions.’
+# >[https://www.felixcloutier.com/x86/setcc]:‘Appendix B, “EFLAGS Condition Codes,” in the Intel® 64 and IA-32 Architectures Software Developer's Manual, Volume 1, shows the alternate mnemonics for various test conditions.’

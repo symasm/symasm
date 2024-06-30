@@ -1,0 +1,4 @@
+[hook "startcommit"]
+	cmdline = python helper_scripts/pre_commit.py
+	wait = true
+	show = true
