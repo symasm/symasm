@@ -100,6 +100,12 @@ def tokenize(source, errors: list):
             elif ch in ':,[]()':
                 category = Token.Category.DELIMITER
 
+            elif ch in '<' and source[i] == '_':
+                while i < len(source) - 1 and source[i] != '>':
+                    i += 1
+                i += 1
+                category = Token.Category.NAME
+
             else:
                 errors.append(Error('unexpected character `' + ch + '`', lexem_start, lexem_start))
 
@@ -501,6 +507,10 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
         elif mnem in ('rcl', 'rcr'):
             eoc(2)
             res.append((line, 'cf:' + ops[0] + ' (' + ('<<' if mnem == 'rcl' else '>>') + ')= ' + ops[1]))
+
+        elif mnem == 'nop':
+            eoc_range(0, 1)
+            res.append((line, 'nop ' + ops[0] if len(ops) == 1 else 'nop'))
 
         elif mnem[0] == 'f':
             res.append((line, fpu_to_symasm(mnem, ops, line[0], errors)))

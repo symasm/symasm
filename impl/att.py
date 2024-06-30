@@ -33,6 +33,11 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
         ops.append(operands[0][0].string)
         return mnem
 
+    if mnem == 'nopw':
+        assert(len(operands) == 1 and source[operands[0][0].start:operands[0][-1].end] == '%cs:0x0(%rax,%rax,1)')
+        ops.append('WORD PTR cs:[rax+rax*1+0h]')
+        return 'nop'
+
     simd_size = 0
     for op in operands:
         if len(op) == 1 and op[0].string[0] == '%' and is_simd_reg(op[0].string[1:]):
@@ -120,9 +125,12 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
                 if errors is not None:
                     errors.append(Error('open paren is not found', toks[0].start, toks[-1].end))
 
-        elif toks[0].string[0] == '.': # label
+        elif toks[0].string[0] == '.': # gcc label
             assert(len(toks) == 1)
             r = toks[0].string
+
+        elif len(toks) == 2 and toks[1].string.startswith('<_'): # objdump label
+            r = source[toks[0].start:toks[-1].end]
 
         else:
             if errors is not None:
@@ -134,6 +142,9 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
         if mnem.startswith('cmov') and mnem[-1] == 'l' and len(mnem) > 5:
             return mnem[:-1]
         return mnem
+
+    if mnem == 'callq':
+        return 'call'
 
     if reg_size != 0:
         if mnem[-1] != {1:'b', 2:'w', 4:'l', 8:'q', 10:'t', 16:'o'}[reg_size]:

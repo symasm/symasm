@@ -1,0 +1,222 @@
+// [https://sonictk.github.io/asm_tutorial/#beatingthecompiler/acorrelationfunction]
+#include <math.h>
+double correlation_ref(const double x[], const double y[], int n)
+{
+    double sumX = 0.0;
+    double sumY = 0.0;
+    double sumXX = 0.0;
+    double sumYY = 0.0;
+    double sumXY = 0.0;
+    for (int i=0; i < n; ++i) {
+        sumX += x[i];
+        sumY += y[i];
+        sumXX += x[i] * x[i];
+        sumYY += y[i] * y[i];
+        sumXY += x[i] * y[i];
+    }
+    double covXY = (n * sumXY) - (sumX * sumY);
+    double varX = (n * sumXX) - (sumX * sumX);
+    double varY = (n * sumYY) - (sumY * sumY);
+    return covXY / sqrt(varX * varY);
+}
+
+        testl  %edx,%edx
+        jle    c0 <_Z15correlation_refPKdS0_i+0xc0>
+        pxor   %xmm7,%xmm7
+        leal   -0x1(%rdx),%r8d
+        xorl   %eax,%eax
+        movapd %xmm7,%xmm3
+        movapd %xmm7,%xmm6
+        movapd %xmm7,%xmm2
+        movapd %xmm7,%xmm4
+        movapd %xmm7,%xmm5
+        nopw   %cs:0x0(%rax,%rax,1)
+        movsd  (%rdi,%rax,8),%xmm0
+        movsd  (%rsi,%rax,8),%xmm1
+        movq   %rax,%rcx
+        addq   $0x1,%rax
+        movapd %xmm0,%xmm8
+        addsd  %xmm0,%xmm5
+        addsd  %xmm1,%xmm4
+        mulsd  %xmm0,%xmm8
+        mulsd  %xmm1,%xmm0
+        addsd  %xmm8,%xmm2
+        movapd %xmm1,%xmm8
+        mulsd  %xmm1,%xmm8
+        addsd  %xmm0,%xmm3
+        addsd  %xmm8,%xmm6
+        cmpq   %rcx,%r8
+        jne    30 <_Z15correlation_refPKdS0_i+0x30>
+        movapd %xmm5,%xmm1
+        mulsd  %xmm4,%xmm1
+        mulsd  %xmm5,%xmm5
+        mulsd  %xmm4,%xmm4
+        pxor   %xmm0,%xmm0
+        cvtsi2sdl %edx,%xmm0
+        mulsd  %xmm0,%xmm3
+        mulsd  %xmm0,%xmm2
+        mulsd  %xmm6,%xmm0
+        subsd  %xmm1,%xmm3
+        subsd  %xmm5,%xmm2
+        subsd  %xmm4,%xmm0
+        mulsd  %xmm2,%xmm0
+        ucomisd %xmm0,%xmm7
+        movapd %xmm0,%xmm1
+        sqrtsd %xmm1,%xmm1
+        ja     de <_Z15correlation_refPKdS0_i+0xde>
+        divsd  %xmm1,%xmm3
+        movapd %xmm3,%xmm0
+        retq
+        nop
+        pxor   %xmm7,%xmm7
+        movapd %xmm7,%xmm4
+        movapd %xmm7,%xmm5
+        movapd %xmm7,%xmm1
+        movapd %xmm7,%xmm3
+        movapd %xmm7,%xmm6
+        movapd %xmm7,%xmm2
+        jmp    84 <_Z15correlation_refPKdS0_i+0x84>
+        subq   $0x18,%rsp
+        movsd  %xmm3,0x8(%rsp)
+        movsd  %xmm1,(%rsp)
+        callq  f2 <_Z15correlation_refPKdS0_i+0xf2>
+        movsd  0x8(%rsp),%xmm3
+        movsd  (%rsp),%xmm1
+        addq   $0x18,%rsp
+        divsd  %xmm1,%xmm3
+        movapd %xmm3,%xmm0
+        retq
+
+        test   edx,edx
+        jle    c0 <_Z15correlation_refPKdS0_i+0xc0>
+        pxor   xmm7,xmm7
+        lea    r8d,[rdx-0x1]
+        xor    eax,eax
+        movapd xmm3,xmm7
+        movapd xmm6,xmm7
+        movapd xmm2,xmm7
+        movapd xmm4,xmm7
+        movapd xmm5,xmm7
+        nop    WORD PTR cs:[rax+rax*1+0x0]
+        movsd  xmm0,QWORD PTR [rdi+rax*8]
+        movsd  xmm1,QWORD PTR [rsi+rax*8]
+        mov    rcx,rax
+        add    rax,0x1
+        movapd xmm8,xmm0
+        addsd  xmm5,xmm0
+        addsd  xmm4,xmm1
+        mulsd  xmm8,xmm0
+        mulsd  xmm0,xmm1
+        addsd  xmm2,xmm8
+        movapd xmm8,xmm1
+        mulsd  xmm8,xmm1
+        addsd  xmm3,xmm0
+        addsd  xmm6,xmm8
+        cmp    r8,rcx
+        jne    30 <_Z15correlation_refPKdS0_i+0x30>
+        movapd xmm1,xmm5
+        mulsd  xmm1,xmm4
+        mulsd  xmm5,xmm5
+        mulsd  xmm4,xmm4
+        pxor   xmm0,xmm0
+        cvtsi2sd xmm0,edx
+        mulsd  xmm3,xmm0
+        mulsd  xmm2,xmm0
+        mulsd  xmm0,xmm6
+        subsd  xmm3,xmm1
+        subsd  xmm2,xmm5
+        subsd  xmm0,xmm4
+        mulsd  xmm0,xmm2
+        ucomisd xmm7,xmm0
+        movapd xmm1,xmm0
+        sqrtsd xmm1,xmm1
+        ja     de <_Z15correlation_refPKdS0_i+0xde>
+        divsd  xmm3,xmm1
+        movapd xmm0,xmm3
+        ret
+        nop
+        pxor   xmm7,xmm7
+        movapd xmm4,xmm7
+        movapd xmm5,xmm7
+        movapd xmm1,xmm7
+        movapd xmm3,xmm7
+        movapd xmm6,xmm7
+        movapd xmm2,xmm7
+        jmp    84 <_Z15correlation_refPKdS0_i+0x84>
+        sub    rsp,0x18
+        movsd  QWORD PTR [rsp+0x8],xmm3
+        movsd  QWORD PTR [rsp],xmm1
+        call   f2 <_Z15correlation_refPKdS0_i+0xf2>
+        movsd  xmm3,QWORD PTR [rsp+0x8]
+        movsd  xmm1,QWORD PTR [rsp]
+        add    rsp,0x18
+        divsd  xmm3,xmm1
+        movapd xmm0,xmm3
+        ret
+
+        edx <&> edx
+        <= : c0 <_Z15correlation_refPKdS0_i+0xc0>
+        xmm7 |=| 0
+        r8i = &[rdx-1h]
+        eax = 0
+        xmm3d |=a| xmm7
+        xmm6d |=a| xmm7
+        xmm2d |=a| xmm7
+        xmm4d |=a| xmm7
+        xmm5d |=a| xmm7
+        nop WORD PTR cs:[rax+rax*1+0h]
+        xmm0d = 8bytes[rdi+rax*8]
+        xmm1d = 8bytes[rsi+rax*8]
+        rcx = rax
+        rax += 1h
+        xmm8d |=a| xmm0
+        xmm5d += xmm0
+        xmm4d += xmm1
+        xmm8d *= xmm0
+        xmm0d *= xmm1
+        xmm2d += xmm8
+        xmm8d |=a| xmm1
+        xmm8d *= xmm1
+        xmm3d += xmm0
+        xmm6d += xmm8
+        r8 != rcx : 30 <_Z15correlation_refPKdS0_i+0x30>
+        -
+        xmm1d |=a| xmm5
+        xmm1d *= xmm4
+        xmm5d *= xmm5
+        xmm4d *= xmm4
+        xmm0 |=| 0
+        xmm0d = float(edx)
+        xmm3d *= xmm0
+        xmm2d *= xmm0
+        xmm0d *= xmm6
+        xmm3d -= xmm1
+        xmm2d -= xmm5
+        xmm0d -= xmm4
+        xmm0d *= xmm2
+        xmm7d uo<=> xmm0d
+        xmm1d |=a| xmm0
+        xmm1d = sqrt(xmm1)
+        u> : de <_Z15correlation_refPKdS0_i+0xde>
+        xmm3d /= xmm1
+        xmm0d |=a| xmm3
+        ret
+        nop
+        xmm7 |=| 0
+        xmm4d |=a| xmm7
+        xmm5d |=a| xmm7
+        xmm1d |=a| xmm7
+        xmm3d |=a| xmm7
+        xmm6d |=a| xmm7
+        xmm2d |=a| xmm7
+        :84 <_Z15correlation_refPKdS0_i+0x84>
+        rsp -= 18h
+        8bytes[rsp+8h] = xmm3d
+        8bytes[rsp] = xmm1d
+        f2 <_Z15correlation_refPKdS0_i+0xf2>(...)
+        xmm3d = 8bytes[rsp+8h]
+        xmm1d = 8bytes[rsp]
+        rsp += 18h
+        xmm3d /= xmm1
+        xmm0d |=a| xmm3
+        ret
