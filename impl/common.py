@@ -69,6 +69,8 @@ def cpu_gp_reg_size(reg):
             return 1
         if reg in cpu_gp_regs_2b:
             return 2
+        if reg[0] == 'r' and reg[1].isdigit():
+            return 8
         return 0
 
     if len(reg) == 3:

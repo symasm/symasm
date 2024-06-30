@@ -1,0 +1,252 @@
+// [https://sonictk.github.io/asm_tutorial/#beatingthecompiler/acorrelationfunction]
+#include <math.h>
+double correlation_ref(const double x[], const double y[], int n)
+{
+    double sumX = 0.0;
+    double sumY = 0.0;
+    double sumXX = 0.0;
+    double sumYY = 0.0;
+    double sumXY = 0.0;
+    for (int i=0; i < n; ++i) {
+        sumX += x[i];
+        sumY += y[i];
+        sumXX += x[i] * x[i];
+        sumYY += y[i] * y[i];
+        sumXY += x[i] * y[i];
+    }
+    double covXY = (n * sumXY) - (sumX * sumY);
+    double varX = (n * sumXX) - (sumX * sumX);
+    double varY = (n * sumYY) - (sumY * sumY);
+    return covXY / sqrt(varX * varY);
+}
+
+        .cfi_startproc
+        testl   %edx, %edx
+        jle     .L5
+        pxor    %xmm7, %xmm7
+        leal    -1(%rdx), %r8d
+        xorl    %eax, %eax
+        movapd  %xmm7, %xmm3
+        movapd  %xmm7, %xmm6
+        movapd  %xmm7, %xmm2
+        movapd  %xmm7, %xmm4
+        movapd  %xmm7, %xmm5
+        .p2align 4,,10
+        .p2align 3
+.L3:
+        movsd   (%rdi,%rax,8), %xmm0
+        movsd   (%rsi,%rax,8), %xmm1
+        movq    %rax, %rcx
+        addq    $1, %rax
+        movapd  %xmm0, %xmm8
+        addsd   %xmm0, %xmm5
+        addsd   %xmm1, %xmm4
+        mulsd   %xmm0, %xmm8
+        mulsd   %xmm1, %xmm0
+        addsd   %xmm8, %xmm2
+        movapd  %xmm1, %xmm8
+        mulsd   %xmm1, %xmm8
+        addsd   %xmm0, %xmm3
+        addsd   %xmm8, %xmm6
+        cmpq    %rcx, %r8
+        jne     .L3
+        movapd  %xmm5, %xmm1
+        mulsd   %xmm4, %xmm1
+        mulsd   %xmm5, %xmm5
+        mulsd   %xmm4, %xmm4
+.L2:
+        pxor    %xmm0, %xmm0
+        cvtsi2sdl       %edx, %xmm0
+        mulsd   %xmm0, %xmm3
+        mulsd   %xmm0, %xmm2
+        mulsd   %xmm6, %xmm0
+        subsd   %xmm1, %xmm3
+        subsd   %xmm5, %xmm2
+        subsd   %xmm4, %xmm0
+        mulsd   %xmm2, %xmm0
+        ucomisd %xmm0, %xmm7
+        movapd  %xmm0, %xmm1
+        sqrtsd  %xmm1, %xmm1
+        ja      .L12
+        divsd   %xmm1, %xmm3
+        movapd  %xmm3, %xmm0
+        ret
+        .p2align 4,,10
+        .p2align 3
+.L5:
+        pxor    %xmm7, %xmm7
+        movapd  %xmm7, %xmm4
+        movapd  %xmm7, %xmm5
+        movapd  %xmm7, %xmm1
+        movapd  %xmm7, %xmm3
+        movapd  %xmm7, %xmm6
+        movapd  %xmm7, %xmm2
+        jmp     .L2
+.L12:
+        subq    $24, %rsp
+        .cfi_def_cfa_offset 32
+        movsd   %xmm3, 8(%rsp)
+        movsd   %xmm1, (%rsp)
+        call    sqrt@PLT
+        movsd   8(%rsp), %xmm3
+        movsd   (%rsp), %xmm1
+        addq    $24, %rsp
+        .cfi_def_cfa_offset 8
+        divsd   %xmm1, %xmm3
+        movapd  %xmm3, %xmm0
+        ret
+        .cfi_endproc
+
+        .cfi_startproc
+        test    edx, edx
+        jle     .L5
+        pxor    xmm7, xmm7
+        lea     r8d, -1[rdx]
+        xor     eax, eax
+        movapd  xmm3, xmm7
+        movapd  xmm6, xmm7
+        movapd  xmm2, xmm7
+        movapd  xmm4, xmm7
+        movapd  xmm5, xmm7
+        .p2align 4,,10
+        .p2align 3
+.L3:
+        movsd   xmm0, QWORD PTR [rdi+rax*8]
+        movsd   xmm1, QWORD PTR [rsi+rax*8]
+        mov     rcx, rax
+        add     rax, 1
+        movapd  xmm8, xmm0
+        addsd   xmm5, xmm0
+        addsd   xmm4, xmm1
+        mulsd   xmm8, xmm0
+        mulsd   xmm0, xmm1
+        addsd   xmm2, xmm8
+        movapd  xmm8, xmm1
+        mulsd   xmm8, xmm1
+        addsd   xmm3, xmm0
+        addsd   xmm6, xmm8
+        cmp     r8, rcx
+        jne     .L3
+        movapd  xmm1, xmm5
+        mulsd   xmm1, xmm4
+        mulsd   xmm5, xmm5
+        mulsd   xmm4, xmm4
+.L2:
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, edx
+        mulsd   xmm3, xmm0
+        mulsd   xmm2, xmm0
+        mulsd   xmm0, xmm6
+        subsd   xmm3, xmm1
+        subsd   xmm2, xmm5
+        subsd   xmm0, xmm4
+        mulsd   xmm0, xmm2
+        ucomisd xmm7, xmm0
+        movapd  xmm1, xmm0
+        sqrtsd  xmm1, xmm1
+        ja      .L12
+        divsd   xmm3, xmm1
+        movapd  xmm0, xmm3
+        ret
+        .p2align 4,,10
+        .p2align 3
+.L5:
+        pxor    xmm7, xmm7
+        movapd  xmm4, xmm7
+        movapd  xmm5, xmm7
+        movapd  xmm1, xmm7
+        movapd  xmm3, xmm7
+        movapd  xmm6, xmm7
+        movapd  xmm2, xmm7
+        jmp     .L2
+.L12:
+        sub     rsp, 24
+        .cfi_def_cfa_offset 32
+        movsd   QWORD PTR 8[rsp], xmm3
+        movsd   QWORD PTR [rsp], xmm1
+        call    sqrt@PLT
+        movsd   xmm3, QWORD PTR 8[rsp]
+        movsd   xmm1, QWORD PTR [rsp]
+        add     rsp, 24
+        .cfi_def_cfa_offset 8
+        divsd   xmm3, xmm1
+        movapd  xmm0, xmm3
+        ret
+        .cfi_endproc
+
+        .cfi_startproc
+        edx <&> edx
+        <= : .L5
+        xmm7 |(+)=| xmm7
+        r8i = &[rdx-1]
+        eax = 0
+        xmm3d |=a| xmm7
+        xmm6d |=a| xmm7
+        xmm2d |=a| xmm7
+        xmm4d |=a| xmm7
+        xmm5d |=a| xmm7
+        .p2align 4,,10
+        .p2align 3
+.L3:
+        xmm0d = 8bytes[rdi+rax*8]
+        xmm1d = 8bytes[rsi+rax*8]
+        rcx = rax
+        rax += 1
+        xmm8d |=a| xmm0
+        xmm5d += xmm0
+        xmm4d += xmm1
+        xmm8d *= xmm0
+        xmm0d *= xmm1
+        xmm2d += xmm8
+        xmm8d |=a| xmm1
+        xmm8d *= xmm1
+        xmm3d += xmm0
+        xmm6d += xmm8
+        r8 != rcx : .L3
+        -
+        xmm1d |=a| xmm5
+        xmm1d *= xmm4
+        xmm5d *= xmm5
+        xmm4d *= xmm4
+.L2:
+        xmm0 |(+)=| xmm0
+        xmm0d = float(edx)
+        xmm3d *= xmm0
+        xmm2d *= xmm0
+        xmm0d *= xmm6
+        xmm3d -= xmm1
+        xmm2d -= xmm5
+        xmm0d -= xmm4
+        xmm0d *= xmm2
+        xmm7d uo<=> xmm0d
+        xmm1d |=a| xmm0
+        xmm1d = sqrt(xmm1)
+        u> : .L12
+        xmm3d /= xmm1
+        xmm0d |=a| xmm3
+        ret
+        .p2align 4,,10
+        .p2align 3
+.L5:
+        xmm7 |(+)=| xmm7
+        xmm4d |=a| xmm7
+        xmm5d |=a| xmm7
+        xmm1d |=a| xmm7
+        xmm3d |=a| xmm7
+        xmm6d |=a| xmm7
+        xmm2d |=a| xmm7
+        :.L2
+.L12:
+        rsp -= 24
+        .cfi_def_cfa_offset 32
+        8bytes[rsp+8] = xmm3d
+        8bytes[rsp] = xmm1d
+        sqrt@PLT(...)
+        xmm3d = 8bytes[rsp+8]
+        xmm1d = 8bytes[rsp]
+        rsp += 24
+        .cfi_def_cfa_offset 8
+        xmm3d /= xmm1
+        xmm0d |=a| xmm3
+        ret
+        .cfi_endproc

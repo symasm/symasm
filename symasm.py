@@ -244,13 +244,16 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
                 if token.string != '[': # ]
                     r += asm_sizes[token.string.lower()]
                     i += 2
+                offset = ''
                 if toks[i].string != '[': # ]
                     r += '['
-                    r += toks[i].string + '+'
+                    if toks[i].string.isdigit():
+                        offset = '+' + toks[i].string
+                    else:
+                        r += toks[i].string + '+'
                     i += 2
                     if toks[i].string == '0' and toks[i+1].string == '+':
                         i += 2
-                offset = ''
                 writepos = toks[i].start
                 while i < len(toks):
                     if toks[i].string in ('+', '-') and toks[i+1].category == Token.Category.NUMERIC_LITERAL:
@@ -292,7 +295,8 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
             res.append((line, ''))
             continue
 
-        if line[-1].string == ':': # this is a label
+        if (line[-1].string == ':' or # this is a label
+             line[0].string[0] == '.'): # or directive
             res.append((line, ''))
             continue
 
@@ -342,9 +346,13 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
         elif mnem == 'lea':
             eoc(2)
             if not ops[1].startswith('['): # ]
-                bracket_pos = ops[1].find('[') # ]
-                assert(bracket_pos != 1 and is_symasm_size(ops[1][:bracket_pos]))
-                ops[1] = ops[1][bracket_pos:]
+                bracket_pos = ops[1].find('[')
+                assert(bracket_pos != 1)
+                if ops[1][0] == '-' or ops[1][:bracket_pos].isdigit():
+                    ops[1] = ops[1][bracket_pos:-1] + ops[1][:bracket_pos] + ']'
+                else:
+                    assert(is_symasm_size(ops[1][:bracket_pos]))
+                    ops[1] = ops[1][bracket_pos:]
             res.append((line, ops[0] + ' = &' + ops[1]))
 
         elif mnem in simple_instructions_with_2_operands:

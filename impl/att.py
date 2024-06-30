@@ -29,6 +29,19 @@ def fix_number(imm):
 att_suffixes = {'b':1, 'w':2, 'l':4, 'q':8, 't':10, 'o':16}
 
 def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List[Error] = None):
+    if mnem == 'call':
+        ops.append(operands[0][0].string)
+        return mnem
+
+    simd_size = 0
+    for op in operands:
+        if len(op) == 1 and op[0].string[0] == '%' and is_simd_reg(op[0].string[1:]):
+            if mnem[-2] == 'p': # packed
+                simd_size = 16 << (ord(op[0].string[1].lower()) - ord('x'))
+            elif mnem[-2] == 's': # scalar
+                simd_size = {'s':4, 'd':8}[mnem[-1]]
+            break
+
     reg_size = 0
     mem_size = 0
 
@@ -44,8 +57,8 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
                 r = '-' + fix_number(toks[2].string)
 
         elif toks[0].string[0] == '%': # register
-            assert(is_reg(toks[0].string[1:]) and len(toks) == 1)
             r = fix_reg(toks[0].string[1:])
+            assert(is_reg(r) and len(toks) == 1)
             if is_cpu_gp_reg(r):
                 sz = cpu_gp_reg_size(r)
                 if reg_size == 0:
@@ -97,12 +110,19 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
                             r = source[disp[0].start:disp[-1].end] + '+' + r
 
                     assert(mem_size == 0)
-                    mem_size = att_suffixes[mnem[-2] if mnem.startswith(('movs', 'movz')) else mnem[-1]]
-                    r = size_keyword(mem_size) + '[' + r + ']'
+                    if simd_size != 0: # SIMD instructions have no suffix
+                        r = f'{simd_size}bytes[{r}]'
+                    else:
+                        mem_size = att_suffixes[mnem[-2] if mnem.startswith(('movs', 'movz')) else mnem[-1]]
+                        r = size_keyword(mem_size) + '[' + r + ']'
                     break
             else:
                 if errors is not None:
                     errors.append(Error('open paren is not found', toks[0].start, toks[-1].end))
+
+        elif toks[0].string[0] == '.': # label
+            assert(len(toks) == 1)
+            r = toks[0].string
 
         else:
             if errors is not None:
