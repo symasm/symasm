@@ -177,7 +177,7 @@ double correlation_ref(const double x[], const double y[], int n)
         .cfi_startproc
         edx <&> edx
         <= : .L5
-        xmm7 |(+)=| xmm7
+        xmm7 |=| 0
         r8i = &[rdx-1]
         eax = 0
         xmm3d |=a| xmm7
@@ -209,7 +209,7 @@ double correlation_ref(const double x[], const double y[], int n)
         xmm5d *= xmm5
         xmm4d *= xmm4
 .L2:
-        xmm0 |(+)=| xmm0
+        xmm0 |=| 0
         xmm0d = float(edx)
         xmm3d *= xmm0
         xmm2d *= xmm0
@@ -228,7 +228,7 @@ double correlation_ref(const double x[], const double y[], int n)
         .p2align 4,,10
         .p2align 3
 .L5:
-        xmm7 |(+)=| xmm7
+        xmm7 |=| 0
         xmm4d |=a| xmm7
         xmm5d |=a| xmm7
         xmm1d |=a| xmm7

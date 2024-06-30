@@ -261,6 +261,8 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                 return ops[0] + simd_int_types[mnem[-1]] + ' |.=| ' + mnem[1:-1] + '(' + ops[1] + ')'
         elif mnem[1:] in simd_simple_int_bitwise_instructions:
             if eoc(2):
+                if mnem == 'pxor' and ops[0] == ops[1]:
+                    return ops[0] + ' |=| 0'
                 return ops[0] + ' |' + simd_simple_int_bitwise_instructions[mnem[1:]] + '=| ' + ops[1]
         elif mnem == 'pandn':
             if eoc(2):
