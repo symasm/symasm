@@ -30,7 +30,7 @@ def tokenize(source, errors: list):
 
             tokens.append(Token(i, i + 1, Token.Category.NEWLINE, source, len(tokens)))
             i += 1
-        elif ch == ';':
+        elif ch in ';#':
             comment_start = i
             i += 1
             while i < len(source) and source[i] != "\n":
@@ -253,8 +253,8 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
                 offset = ''
                 writepos = toks[i].start
                 while i < len(toks):
-                    if toks[i].string in ('+', '-') and toks[i+1].string.isdigit():
-                        offset = source[toks[i-1].end:toks[i+1].end]
+                    if toks[i].string in ('+', '-') and toks[i+1].category == Token.Category.NUMERIC_LITERAL:
+                        offset = source[toks[i-1].end:toks[i+1].start] + fix_number(toks[i+1].string)
                         writepos = toks[i+1].end
                         i += 2
                         continue
@@ -268,7 +268,7 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
                 continue
 
             else:
-                r += fix_imm(token.string)
+                r += fix_number(token.string)
 
             writepos = token.end
             i += 1

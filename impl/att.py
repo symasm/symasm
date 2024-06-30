@@ -1,6 +1,9 @@
 from .common import *
 from .simd import *
 
+# >[https://stackoverflow.com/questions/37056387/converting-from-intel-assembly-to-gas-att <- google:‘site:stackoverflow.com translate intel to at t syntax’]:‘
+# The ‘GAS manual’[https://sourceware.org/binutils/docs/as/i386_002dMemory.html#i386_002dMemory] has a pretty good explanation of how to write memory references in AT&T syntax.’
+
 # [http://staffwww.fullcoll.edu/aclifton/courses/cs241/syntax.html <- google:‘at&t syntax samples’]
 
 # >[https://stackoverflow.com/questions/3902460/a-reference-for-att-syntax-assembly-floating-point-arithmetic <- google:‘at&t syntax fpu’]:‘The main things to note are:’
@@ -18,7 +21,7 @@ def fix_reg(reg):
 def is_att_number(s):
     return s.startswith(('0x', '0X')) or s.isdigit()
 
-def fix_imm(imm):
+def fix_number(imm):
     if imm.startswith(('0x', '0X')):
         return '0'*(not imm[2].isdigit()) + imm[2:] + 'h'
     return imm
@@ -35,10 +38,10 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
         if toks[0].string[0] == '$': # immediate/‘numeric constant’
             if len(toks) == 1:
                 assert(is_att_number(toks[0].string[1:]))
-                r = fix_imm(toks[0].string[1:])
+                r = fix_number(toks[0].string[1:])
             else:
                 assert(len(toks) == 3 and len(toks[0].string) == 1 and toks[1].string == '-' and is_att_number(toks[2].string))
-                r = '-' + fix_imm(toks[2].string)
+                r = '-' + fix_number(toks[2].string)
 
         elif toks[0].string[0] == '%': # register
             assert(is_reg(toks[0].string[1:]) and len(toks) == 1)
@@ -61,9 +64,9 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
                     if toks[i].string == ',': # no base
                         assert(toks[i+1].string[0] == '%' and
                                toks[i+2].string == ',' and
-                               toks[i+3].string.isdigit() and
+                               toks[i+3].category == Token.Category.NUMERIC_LITERAL and
                                     i+4 == len(toks)-1)
-                        r = fix_reg(toks[i+1].string[1:]) + '*' + toks[i+3].string
+                        r = fix_reg(toks[i+1].string[1:]) + '*' + fix_number(toks[i+3].string)
                     else:
                         base = toks[i].string
                         assert(base[0] == '%')
@@ -84,15 +87,15 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
                         assert(i + 1 == len(toks))
 
                     if len(disp) != 0:
-                        if len(disp) == 1 and disp[0].string.isdigit():
+                        if len(disp) == 1 and disp[0].category == Token.Category.NUMERIC_LITERAL:
                             if r != '':
                                 r += '+'
-                            r += disp[0].string
-                        elif len(disp) == 2 and disp[1].string.isdigit() and disp[0].string == '-':
-                            r += '-' + disp[1].string
+                            r += fix_number(disp[0].string)
+                        elif len(disp) == 2 and disp[1].category == Token.Category.NUMERIC_LITERAL and disp[0].string == '-':
+                            r += '-' + fix_number(disp[1].string)
                         else:
                             r = source[disp[0].start:disp[-1].end] + '+' + r
-                    
+
                     assert(mem_size == 0)
                     mem_size = att_suffixes[mnem[-2] if mnem.startswith(('movs', 'movz')) else mnem[-1]]
                     r = size_keyword(mem_size) + '[' + r + ']'
