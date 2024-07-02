@@ -23,10 +23,20 @@ def is_att_number(s):
 
 def fix_number(imm):
     if imm.startswith(('0x', '0X')):
-        return '0'*(not imm[2].isdigit()) + imm[2:] + 'h'
+        return '0'*(not imm[2].isdigit()) + imm[2:] + 'h'# * (not (len(imm) == 3 and imm[2].isdigit()))
     return imm
 
 att_suffixes = {'b':1, 'w':2, 'l':4, 'q':8, 't':10, 'o':16}
+
+# [https://stackoverflow.com/questions/6555094/what-does-cltq-do-in-assembly <- google:‘cltq asm’]
+att_instructions_without_operands = {
+    'cbtw' : 'cbw',
+    'cwtl' : 'cwde',
+    'cltq' : 'cdqe',
+    'cwtd' : 'cwd',
+    'cltd' : 'cdq',
+    'cqto' : 'cqo',
+}
 
 def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List[Error] = None):
     if mnem == 'call':
@@ -35,7 +45,7 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
 
     if mnem == 'nopw':
         assert(len(operands) == 1 and source[operands[0][0].start:operands[0][-1].end] == '%cs:0x0(%rax,%rax,1)')
-        ops.append('WORD PTR cs:[rax+rax*1+0h]')
+        ops.append('2bytes[cs:rax+rax*1+0h]')
         return 'nop'
 
     simd_size = 0
@@ -111,6 +121,8 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
                             r += fix_number(disp[0].string)
                         elif len(disp) == 2 and disp[1].category == Token.Category.NUMERIC_LITERAL and disp[0].string == '-':
                             r += '-' + fix_number(disp[1].string)
+                        elif len(disp) == 3 and disp[0].category == Token.Category.NUMERIC_LITERAL and disp[1].string == '+':
+                            r = disp[2].string + '+' + r + '+' + disp[0].string
                         else:
                             r = source[disp[0].start:disp[-1].end] + '+' + r
 
@@ -145,6 +157,9 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
 
     if mnem == 'callq':
         return 'call'
+
+    if mnem in att_instructions_without_operands:
+        return att_instructions_without_operands[mnem]
 
     if reg_size != 0:
         if mnem[-1] != {1:'b', 2:'w', 4:'l', 8:'q', 10:'t', 16:'o'}[reg_size]:

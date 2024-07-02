@@ -108,6 +108,11 @@ simd_special_intrinsics_with_2_operands = {
     'punpckhwd' : ('unpackhi', 'w'),
     'punpckhdq' : ('unpackhi', 'i'),
     'punpckhqdq': ('unpackhi', 'l'),
+
+    'unpcklps'  : ('unpacklo', 's'),
+    'unpcklpd'  : ('unpacklo', 'd'),
+    'unpckhps'  : ('unpackhi', 's'),
+    'unpckhpd'  : ('unpackhi', 'd'),
 }
 
 def is_simd_reg(operand):
@@ -200,7 +205,7 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
     elif mnem in ('movq', 'movd'):
         return simd_movq_movd(mnem, ops, token, errors)
 
-    elif mnem in simd_special_intrinsics_with_2_operands:
+    elif mnem in simd_special_intrinsics_with_2_operands and not mnem in simd_simple_register_instructions:
         if eoc(2):
             iname, ty = simd_special_intrinsics_with_2_operands[mnem]
             return ops[0] + ty + ' |.=| ' + iname + '(' + ops[1] + ')'
@@ -475,7 +480,7 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
 
     elif mnem in ('vextractf128', 'vextracti128'):
         if coc(3, ops, token, errors):
-            assert(ops[2] == '1')
+            assert(ops[2] in ('1', '1h'))
             ty = 'd' if mnem == 'vextractf128' else 'l'
             return simd_reg_mem(ops[0], ty) + ' v|=| ' + ops[1] + ty + '[2:4]'
 

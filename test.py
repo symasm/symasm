@@ -80,7 +80,7 @@ for fname in os.listdir('tests'):
                 annotated += indent + (test[src_line[0].start : src_line[-1].end].ljust(longest_src_line_len) + (' ; ' + line if line != '' else '')).rstrip(' ') + "\n"
 
             if annotated != test + "\n":
-                sys.stderr.write("Mismatch for test:\n" + test + "\nAnnotated:\n" + annotated + "\n")
+                sys.stderr.write("Mismatch for test:\n" + test + "\nAnnotated:\n" + annotated + "\n[in file '" + fname + "']")
                 kdiff3(annotated, test + "\n")
                 sys.exit(1)
 
@@ -97,12 +97,12 @@ for fname in os.listdir('tests'):
             masm_translation = translate('masm', masm)
 
             if att_translation != masm_translation:
-                sys.stderr.write("Mismatch for test:\n" + test + "\n")
+                sys.stderr.write("Mismatch for test:\n" + test + "\n[between AT&T and MASM in file '" + fname + "']")
                 kdiff3(att_translation, masm_translation)
                 sys.exit(1)
 
             if masm_translation != syma:
-                sys.stderr.write("Mismatch for test:\n" + test + "\n")
+                sys.stderr.write("Mismatch for test:\n" + test + "\n[between symasm and MASM in file '" + fname + "']")
                 kdiff3(syma, masm_translation)
                 sys.exit(1)
 

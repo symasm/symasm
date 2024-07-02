@@ -267,3 +267,59 @@ void set_8bytes(long *p) {*p = 0;}
 
         8bytes[rdi] = 0
         ret
+
+------------------------------------------
+
+float x[8], y[8];
+void sum()
+{
+    for (int i=0; i < 8; ++i)
+        x[i] += y[i];
+}
+// gcc-9 -O2 -ftree-vectorize test.c -S
+
+        movaps  x(%rip), %xmm0
+        addps   y(%rip), %xmm0
+        movaps  %xmm0, x(%rip)
+        movaps  16+x(%rip), %xmm0
+        addps   16+y(%rip), %xmm0
+        movaps  %xmm0, 16+x(%rip)
+        ret
+
+        movaps  xmm0, XMMWORD PTR x[rip]
+        addps   xmm0, XMMWORD PTR y[rip]
+        movaps  XMMWORD PTR x[rip], xmm0
+        movaps  xmm0, XMMWORD PTR x[rip+16]
+        addps   xmm0, XMMWORD PTR y[rip+16]
+        movaps  XMMWORD PTR x[rip+16], xmm0
+        ret
+
+        xmm0s |=a| 16bytes[x+rip]
+        xmm0s |+=| 16bytes[y+rip]
+        16bytes[x+rip] |=a| xmm0s
+        xmm0s |=a| 16bytes[x+rip+16]
+        xmm0s |+=| 16bytes[y+rip+16]
+        16bytes[x+rip+16] |=a| xmm0s
+        ret
+
+------------------------------------------
+
+// gcc-9 -O3 -march=haswell test.c -S
+
+        vmovups x(%rip), %ymm1
+        vaddps  y(%rip), %ymm1, %ymm0
+        vmovups %ymm0, x(%rip)
+        vzeroupper
+        ret
+
+        vmovups ymm1, YMMWORD PTR x[rip]
+        vaddps  ymm0, ymm1, YMMWORD PTR y[rip]
+        vmovups YMMWORD PTR x[rip], ymm0
+        vzeroupper
+        ret
+
+        ymm1s v|=u| 32bytes[x+rip]
+        ymm0s v|=| ymm1 + 32bytes[y+rip]
+        32bytes[x+rip] v|=u| ymm0s
+        vzeroupper
+        ret

@@ -274,3 +274,59 @@ void set_8bytes(long *p) {*p = 0;}
 
         8bytes[rdi] = 0h
         ret
+
+------------------------------------------
+
+float x[8], y[8];
+void sum()
+{
+    for (int i=0; i < 8; ++i)
+        x[i] += y[i];
+}
+// gcc-9 -c -O2 -ftree-vectorize test.c && (objdump -d --no-show-raw-insn test.o -M suffix | cut -d ':' -f 2-) && (objdump -d --no-show-raw-insn test.o -M intel | cut -d ':' -f 2-)
+
+        movaps 0x0(%rip),%xmm0        # 7 <sum+0x7>
+        addps  0x0(%rip),%xmm0        # e <sum+0xe>
+        movaps %xmm0,0x0(%rip)        # 15 <sum+0x15>
+        movaps 0x0(%rip),%xmm0        # 1c <sum+0x1c>
+        addps  0x0(%rip),%xmm0        # 23 <sum+0x23>
+        movaps %xmm0,0x0(%rip)        # 2a <sum+0x2a>
+        retq
+
+        movaps xmm0,XMMWORD PTR [rip+0x0]        # 7 <sum+0x7>
+        addps  xmm0,XMMWORD PTR [rip+0x0]        # e <sum+0xe>
+        movaps XMMWORD PTR [rip+0x0],xmm0        # 15 <sum+0x15>
+        movaps xmm0,XMMWORD PTR [rip+0x0]        # 1c <sum+0x1c>
+        addps  xmm0,XMMWORD PTR [rip+0x0]        # 23 <sum+0x23>
+        movaps XMMWORD PTR [rip+0x0],xmm0        # 2a <sum+0x2a>
+        ret
+
+        xmm0s |=a| 16bytes[rip+0h]
+        xmm0s |+=| 16bytes[rip+0h]
+        16bytes[rip+0h] |=a| xmm0s
+        xmm0s |=a| 16bytes[rip+0h]
+        xmm0s |+=| 16bytes[rip+0h]
+        16bytes[rip+0h] |=a| xmm0s
+        ret
+
+------------------------------------------
+
+// gcc-9 -c -O3 -march=haswell test.c && (objdump -d --no-show-raw-insn test.o -M suffix | cut -d ':' -f 2-) && (objdump -d --no-show-raw-insn test.o -M intel | cut -d ':' -f 2-)
+
+        vmovups 0x0(%rip),%ymm1        # 8 <sum+0x8>
+        vaddps 0x0(%rip),%ymm1,%ymm0        # 10 <sum+0x10>
+        vmovups %ymm0,0x0(%rip)        # 18 <sum+0x18>
+        vzeroupper
+        retq
+
+        vmovups ymm1,YMMWORD PTR [rip+0x0]        # 8 <sum+0x8>
+        vaddps ymm0,ymm1,YMMWORD PTR [rip+0x0]        # 10 <sum+0x10>
+        vmovups YMMWORD PTR [rip+0x0],ymm0        # 18 <sum+0x18>
+        vzeroupper
+        ret
+
+        ymm1s v|=u| 32bytes[rip+0h]
+        ymm0s v|=| ymm1 + 32bytes[rip+0h]
+        32bytes[rip+0h] v|=u| ymm0s
+        vzeroupper
+        ret

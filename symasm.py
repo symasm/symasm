@@ -158,6 +158,9 @@ def detect_input_language(input_tokens):
             if not (len(tokens) > 4 and tokens[-3].string.lower() in ('fs', 'gs') and tokens[-4].string.lower() == 'ptr'): # support thread_local variables
                 return 'symasm'
 
+        if tokens[0].string in att_instructions_without_operands:
+            return 'att'
+
         for token in tokens:
             if token.category == Token.Category.PRIMARY_OPERATOR:
                 return 'symasm'
@@ -247,7 +250,7 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
                token.string.endswith  (('d', 'D')) and token.string[1:-1].isdigit():
                 r += token.string[:-1] + trans_char_keep_case(token.string[-1], 'd', 'i')
 
-            elif (token.string.lower() in asm_sizes and toks[i+1].string.lower() == 'ptr' and (toks[i+2].string == '[' or toks[i+3].string == '[')) or token.string == '[': # ]]]
+            elif (token.string.lower() in asm_sizes and toks[i+1].string.lower() == 'ptr' and (toks[i+2].string == '[' or toks[i+3].string == '[' or toks[i+4].string == '[')) or token.string == '[': # ]]]]
                 if token.string != '[': # ]
                     r += asm_sizes[token.string.lower()]
                     i += 2
@@ -256,6 +259,12 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
                     r += '['
                     if toks[i].string.isdigit():
                         offset = '+' + toks[i].string
+                    elif toks[i].string == '-':
+                        i += 1
+                        offset = '-' + toks[i].string
+                    elif toks[i+1].string == ':':
+                        r += toks[i].string + ':'
+                        i += 1
                     else:
                         r += toks[i].string + '+'
                     i += 2
@@ -354,9 +363,11 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
             eoc(2)
             if not ops[1].startswith('['): # ]
                 bracket_pos = ops[1].find('[')
-                assert(bracket_pos != 1)
-                if ops[1][0] == '-' or ops[1][:bracket_pos].isdigit():
+                assert(bracket_pos != -1)
+                if ops[1][0] == '-':
                     ops[1] = ops[1][bracket_pos:-1] + ops[1][:bracket_pos] + ']'
+                elif ops[1][:bracket_pos].isdigit(): # [
+                    ops[1] = ops[1][bracket_pos:-1] + '+' + ops[1][:bracket_pos] + ']'
                 else:
                     assert(is_symasm_size(ops[1][:bracket_pos]))
                     ops[1] = ops[1][bracket_pos:]
@@ -369,6 +380,10 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
         elif mnem in ('movsx', 'movsxd', 'movzx'):
             if eoc(2):
                 res.append((line, ops[0] + ' = ' + mnem[3:5] + '(' + ops[1] + ')'))
+
+        elif mnem in ('push', 'pop'):
+            eoc(1)
+            res.append((line, mnem + ' ' + ops[0]))
 
         elif mnem == 'call':
             eoc(1)

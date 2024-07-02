@@ -164,7 +164,7 @@ double correlation_ref(const double x[], const double y[], int n)
         xmm2d |=a| xmm7
         xmm4d |=a| xmm7
         xmm5d |=a| xmm7
-        nop WORD PTR cs:[rax+rax*1+0h]
+        nop 2bytes[cs:rax+rax*1+0h]
         xmm0d = 8bytes[rdi+rax*8]
         xmm1d = 8bytes[rsi+rax*8]
         rcx = rax
