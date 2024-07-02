@@ -108,6 +108,7 @@ def tokenize(source, errors: list):
 
             else:
                 errors.append(Error('unexpected character `' + ch + '`', lexem_start, lexem_start))
+                continue
 
             tokens.append(Token(lexem_start, i, category, source, len(tokens)))
 
@@ -641,6 +642,48 @@ Options:
             out = open(outfile_name, 'w', encoding = 'utf-8', newline = "\n")
     except:
         sys.exit("Can't open file '" + outfile_name + "' for writing")
+
+    if args_infile.isatty(): # interactive mode
+        while True:
+            request = input('>')
+
+            if request == '':
+                print('?')
+                continue
+
+            if request[0] == '?' or request[-1] == '?':
+                pass
+
+            if request[0] == '!': print(' jn' + request[1] + request[4:]); continue # just for `!o : skip_int_4` [-REMOVE ME ASAP-]
+
+            errors: List[Error] = []
+            tokens = tokenize(request, errors)
+            def print_error():
+                if len(errors) > 0:
+                    for e in errors:
+                        print(' ' * (e.pos + 1) + '^' * max(1, e.end - e.pos))
+                        print('Error: ' + e.message)
+                        break
+                    return True
+                return False
+            if print_error():
+                continue
+
+            lang = detect_input_language(tokens)
+            if lang == 'symasm':
+                print('symasm -> MASM translation is not supported yet')
+                continue
+
+            translation = translate_to_symasm(lang, tokens, request, errors)
+            if print_error():
+                continue
+            assert(len(translation) == 1)
+            if translation[0][1] != '':
+                print(' ' + translation[0][1])
+            else:
+                print(' ' + request)
+
+        sys.exit(0)
 
     # Read and process input
     infile_str: str
