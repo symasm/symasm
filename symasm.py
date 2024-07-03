@@ -93,6 +93,8 @@ def tokenize(source, errors: list):
                         if source[j] not in '01':
                             errors.append(Error('wrong digit in binary number', j, j))
                 elif is_hex and (source[i-1].lower() != 'h' and source[lexem_start+1] not in 'xX'):
+                    if source[i:i+2] == ' <': # dirty hack for `objdump -d` output
+                        continue
                     errors.append(error_at_token('hexadecimal numbers must end with the `h` suffix', tokens[-1]))
 
                 continue
@@ -100,7 +102,7 @@ def tokenize(source, errors: list):
             elif ch in ':,[]()':
                 category = Token.Category.DELIMITER
 
-            elif ch in '<' and source[i] == '_':
+            elif ch == '<' and (source[i] == '_' or source[i].isalpha()) and source[i-2] == ' ':
                 while i < len(source) - 1 and source[i] != '>':
                     i += 1
                 i += 1

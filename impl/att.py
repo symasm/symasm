@@ -44,8 +44,10 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
         return mnem
 
     if mnem == 'nopw':
-        assert(len(operands) == 1 and source[operands[0][0].start:operands[0][-1].end] == '%cs:0x0(%rax,%rax,1)')
-        ops.append('2bytes[cs:rax+rax*1+0]')
+        assert(len(operands) == 1)
+        op = source[operands[0][0].start:operands[0][-1].end]
+        assert(op in ('%cs:0x0(%rax,%rax,1)', '0x0(%rax,%rax,1)'))
+        ops.append('2bytes[' + 'cs:'*(op[0]=='%') + 'rax+rax*1+0]')
         return 'nop'
 
     simd_size = 0
@@ -141,7 +143,7 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
             assert(len(toks) == 1)
             r = toks[0].string
 
-        elif len(toks) == 2 and toks[1].string.startswith('<_'): # objdump label
+        elif len(toks) == 2 and toks[1].string.startswith('<') and toks[1].string.endswith(toks[0].string + '>'): # objdump label
             r = source[toks[0].start:toks[-1].end]
 
         else:
@@ -155,8 +157,8 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
             return mnem[:-1]
         return mnem
 
-    if mnem == 'callq':
-        return 'call'
+    if mnem in ('callq', 'jmpq'):
+        return mnem[:-1]
 
     if mnem in att_instructions_without_operands:
         return att_instructions_without_operands[mnem]

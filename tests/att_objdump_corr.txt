@@ -220,3 +220,451 @@ double correlation_ref(const double x[], const double y[], int n)
         xmm3d /= xmm1
         xmm0d |=a| xmm3
         ret
+
+------------------------------------------
+
+// gcc-9 -c -O3 -march=haswell test.c && (objdump -d --no-show-raw-insn test.o -M suffix | cut -d ':' -f 2-) && (objdump -d --no-show-raw-insn test.o -M intel | cut -d ':' -f 2-)
+
+        testl  %edx,%edx
+        jle    1c8 <correlation_ref+0x1c8>
+        leal   -0x1(%rdx),%eax
+        cmpl   $0x2,%eax
+        jbe    1e6 <correlation_ref+0x1e6>
+        movl   %edx,%ecx
+        vxorpd %xmm7,%xmm7,%xmm7
+        xorl   %eax,%eax
+        vmovapd %xmm7,%xmm8
+        shrl   $0x2,%ecx
+        vmovapd %xmm7,%xmm9
+        vmovapd %xmm7,%xmm6
+        shlq   $0x5,%rcx
+        vmovapd %xmm7,%xmm1
+        vmovapd %xmm7,%xmm5
+        nopw   0x0(%rax,%rax,1)
+        vmovupd (%rdi,%rax,1),%ymm0
+        vmovupd (%rsi,%rax,1),%ymm10
+        addq   $0x20,%rax
+        vaddsd %xmm5,%xmm0,%xmm5
+        vunpckhpd %xmm0,%xmm0,%xmm2
+        vaddsd %xmm1,%xmm10,%xmm1
+        vextractf128 $0x1,%ymm0,%xmm3
+        vaddsd %xmm5,%xmm2,%xmm2
+        vaddsd %xmm2,%xmm3,%xmm5
+        vunpckhpd %xmm10,%xmm10,%xmm2
+        vunpckhpd %xmm3,%xmm3,%xmm3
+        vaddsd %xmm2,%xmm1,%xmm1
+        vaddsd %xmm3,%xmm5,%xmm5
+        vextractf128 $0x1,%ymm10,%xmm3
+        vaddsd %xmm3,%xmm1,%xmm2
+        vunpckhpd %xmm3,%xmm3,%xmm1
+        vmulpd %ymm10,%ymm10,%ymm3
+        vaddsd %xmm1,%xmm2,%xmm1
+        vmulpd %ymm0,%ymm0,%ymm2
+        vmulpd %ymm10,%ymm0,%ymm0
+        vaddsd %xmm2,%xmm6,%xmm6
+        vunpckhpd %xmm2,%xmm2,%xmm4
+        vextractf128 $0x1,%ymm2,%xmm2
+        vaddsd %xmm4,%xmm6,%xmm6
+        vaddsd %xmm3,%xmm9,%xmm4
+        vaddsd %xmm2,%xmm6,%xmm6
+        vunpckhpd %xmm2,%xmm2,%xmm2
+        vaddsd %xmm2,%xmm6,%xmm6
+        vunpckhpd %xmm3,%xmm3,%xmm2
+        vextractf128 $0x1,%ymm3,%xmm3
+        vaddsd %xmm2,%xmm4,%xmm4
+        vaddsd %xmm0,%xmm8,%xmm2
+        vaddsd %xmm3,%xmm4,%xmm4
+        vunpckhpd %xmm3,%xmm3,%xmm3
+        vaddsd %xmm3,%xmm4,%xmm9
+        vunpckhpd %xmm0,%xmm0,%xmm3
+        vextractf128 $0x1,%ymm0,%xmm0
+        vaddsd %xmm3,%xmm2,%xmm2
+        vaddsd %xmm0,%xmm2,%xmm2
+        vunpckhpd %xmm0,%xmm0,%xmm0
+        vaddsd %xmm0,%xmm2,%xmm8
+        cmpq   %rax,%rcx
+        jne    40 <correlation_ref+0x40>
+        movl   %edx,%eax
+        andl   $0xfffffffc,%eax
+        testb  $0x3,%dl
+        je     1c0 <correlation_ref+0x1c0>
+        vzeroupper
+        movslq %eax,%rcx
+        vmovsd (%rdi,%rcx,8),%xmm2
+        vmovsd (%rsi,%rcx,8),%xmm0
+        leal   0x1(%rax),%ecx
+        vfmadd231sd %xmm2,%xmm2,%xmm6
+        vfmadd231sd %xmm0,%xmm0,%xmm9
+        vaddsd %xmm2,%xmm5,%xmm5
+        vfmadd231sd %xmm0,%xmm2,%xmm8
+        vaddsd %xmm0,%xmm1,%xmm1
+        cmpl   %ecx,%edx
+        jle    186 <correlation_ref+0x186>
+        movslq %ecx,%rcx
+        addl   $0x2,%eax
+        vmovsd (%rdi,%rcx,8),%xmm2
+        vmovsd (%rsi,%rcx,8),%xmm0
+        vfmadd231sd %xmm2,%xmm2,%xmm6
+        vfmadd231sd %xmm0,%xmm0,%xmm9
+        vaddsd %xmm2,%xmm5,%xmm5
+        vfmadd231sd %xmm0,%xmm2,%xmm8
+        vaddsd %xmm0,%xmm1,%xmm1
+        cmpl   %eax,%edx
+        jle    186 <correlation_ref+0x186>
+        cltq
+        vmovsd (%rdi,%rax,8),%xmm0
+        vmovsd (%rsi,%rax,8),%xmm2
+        vfmadd231sd %xmm0,%xmm0,%xmm6
+        vfmadd231sd %xmm2,%xmm2,%xmm9
+        vaddsd %xmm0,%xmm5,%xmm5
+        vfmadd231sd %xmm0,%xmm2,%xmm8
+        vaddsd %xmm2,%xmm1,%xmm1
+        vmulsd %xmm5,%xmm1,%xmm2
+        vmulsd %xmm5,%xmm5,%xmm5
+        vmulsd %xmm1,%xmm1,%xmm1
+        vxorps %xmm4,%xmm4,%xmm4
+        vcvtsi2sdl %edx,%xmm4,%xmm4
+        vfmsub231sd %xmm8,%xmm4,%xmm2
+        vfmsub132sd %xmm4,%xmm5,%xmm6
+        vfmsub132sd %xmm9,%xmm1,%xmm4
+        vmulsd %xmm4,%xmm6,%xmm4
+        vucomisd %xmm4,%xmm7
+        vsqrtsd %xmm4,%xmm4,%xmm8
+        ja     205 <correlation_ref+0x205>
+        vdivsd %xmm8,%xmm2,%xmm0
+        retq
+        nopl   (%rax)
+        vzeroupper
+        jmp    186 <correlation_ref+0x186>
+        nopl   (%rax)
+        vxorpd %xmm7,%xmm7,%xmm7
+        vmovapd %xmm7,%xmm1
+        vmovapd %xmm7,%xmm5
+        vmovapd %xmm7,%xmm2
+        vmovapd %xmm7,%xmm8
+        vmovapd %xmm7,%xmm9
+        vmovapd %xmm7,%xmm6
+        jmp    192 <correlation_ref+0x192>
+        vxorpd %xmm7,%xmm7,%xmm7
+        xorl   %eax,%eax
+        vmovapd %xmm7,%xmm8
+        vmovapd %xmm7,%xmm9
+        vmovapd %xmm7,%xmm6
+        vmovapd %xmm7,%xmm1
+        vmovapd %xmm7,%xmm5
+        jmpq   10d <correlation_ref+0x10d>
+        leaq   0x8(%rsp),%r10
+        andq   $0xffffffffffffffe0,%rsp
+        vmovapd %xmm4,%xmm0
+        pushq  -0x8(%r10)
+        pushq  %rbp
+        movq   %rsp,%rbp
+        pushq  %r10
+        subq   $0x28,%rsp
+        vmovsd %xmm2,-0x20(%rbp)
+        vmovsd %xmm8,-0x18(%rbp)
+        callq  22f <correlation_ref+0x22f>
+        vmovsd -0x20(%rbp),%xmm2
+        vmovsd -0x18(%rbp),%xmm8
+        addq   $0x28,%rsp
+        popq   %r10
+        popq   %rbp
+        vdivsd %xmm8,%xmm2,%xmm0
+        leaq   -0x8(%r10),%rsp
+        retq
+
+        test   edx,edx
+        jle    1c8 <correlation_ref+0x1c8>
+        lea    eax,[rdx-0x1]
+        cmp    eax,0x2
+        jbe    1e6 <correlation_ref+0x1e6>
+        mov    ecx,edx
+        vxorpd xmm7,xmm7,xmm7
+        xor    eax,eax
+        vmovapd xmm8,xmm7
+        shr    ecx,0x2
+        vmovapd xmm9,xmm7
+        vmovapd xmm6,xmm7
+        shl    rcx,0x5
+        vmovapd xmm1,xmm7
+        vmovapd xmm5,xmm7
+        nop    WORD PTR [rax+rax*1+0x0]
+        vmovupd ymm0,YMMWORD PTR [rdi+rax*1]
+        vmovupd ymm10,YMMWORD PTR [rsi+rax*1]
+        add    rax,0x20
+        vaddsd xmm5,xmm0,xmm5
+        vunpckhpd xmm2,xmm0,xmm0
+        vaddsd xmm1,xmm10,xmm1
+        vextractf128 xmm3,ymm0,0x1
+        vaddsd xmm2,xmm2,xmm5
+        vaddsd xmm5,xmm3,xmm2
+        vunpckhpd xmm2,xmm10,xmm10
+        vunpckhpd xmm3,xmm3,xmm3
+        vaddsd xmm1,xmm1,xmm2
+        vaddsd xmm5,xmm5,xmm3
+        vextractf128 xmm3,ymm10,0x1
+        vaddsd xmm2,xmm1,xmm3
+        vunpckhpd xmm1,xmm3,xmm3
+        vmulpd ymm3,ymm10,ymm10
+        vaddsd xmm1,xmm2,xmm1
+        vmulpd ymm2,ymm0,ymm0
+        vmulpd ymm0,ymm0,ymm10
+        vaddsd xmm6,xmm6,xmm2
+        vunpckhpd xmm4,xmm2,xmm2
+        vextractf128 xmm2,ymm2,0x1
+        vaddsd xmm6,xmm6,xmm4
+        vaddsd xmm4,xmm9,xmm3
+        vaddsd xmm6,xmm6,xmm2
+        vunpckhpd xmm2,xmm2,xmm2
+        vaddsd xmm6,xmm6,xmm2
+        vunpckhpd xmm2,xmm3,xmm3
+        vextractf128 xmm3,ymm3,0x1
+        vaddsd xmm4,xmm4,xmm2
+        vaddsd xmm2,xmm8,xmm0
+        vaddsd xmm4,xmm4,xmm3
+        vunpckhpd xmm3,xmm3,xmm3
+        vaddsd xmm9,xmm4,xmm3
+        vunpckhpd xmm3,xmm0,xmm0
+        vextractf128 xmm0,ymm0,0x1
+        vaddsd xmm2,xmm2,xmm3
+        vaddsd xmm2,xmm2,xmm0
+        vunpckhpd xmm0,xmm0,xmm0
+        vaddsd xmm8,xmm2,xmm0
+        cmp    rcx,rax
+        jne    40 <correlation_ref+0x40>
+        mov    eax,edx
+        and    eax,0xfffffffc
+        test   dl,0x3
+        je     1c0 <correlation_ref+0x1c0>
+        vzeroupper
+        movsxd rcx,eax
+        vmovsd xmm2,QWORD PTR [rdi+rcx*8]
+        vmovsd xmm0,QWORD PTR [rsi+rcx*8]
+        lea    ecx,[rax+0x1]
+        vfmadd231sd xmm6,xmm2,xmm2
+        vfmadd231sd xmm9,xmm0,xmm0
+        vaddsd xmm5,xmm5,xmm2
+        vfmadd231sd xmm8,xmm2,xmm0
+        vaddsd xmm1,xmm1,xmm0
+        cmp    edx,ecx
+        jle    186 <correlation_ref+0x186>
+        movsxd rcx,ecx
+        add    eax,0x2
+        vmovsd xmm2,QWORD PTR [rdi+rcx*8]
+        vmovsd xmm0,QWORD PTR [rsi+rcx*8]
+        vfmadd231sd xmm6,xmm2,xmm2
+        vfmadd231sd xmm9,xmm0,xmm0
+        vaddsd xmm5,xmm5,xmm2
+        vfmadd231sd xmm8,xmm2,xmm0
+        vaddsd xmm1,xmm1,xmm0
+        cmp    edx,eax
+        jle    186 <correlation_ref+0x186>
+        cdqe
+        vmovsd xmm0,QWORD PTR [rdi+rax*8]
+        vmovsd xmm2,QWORD PTR [rsi+rax*8]
+        vfmadd231sd xmm6,xmm0,xmm0
+        vfmadd231sd xmm9,xmm2,xmm2
+        vaddsd xmm5,xmm5,xmm0
+        vfmadd231sd xmm8,xmm2,xmm0
+        vaddsd xmm1,xmm1,xmm2
+        vmulsd xmm2,xmm1,xmm5
+        vmulsd xmm5,xmm5,xmm5
+        vmulsd xmm1,xmm1,xmm1
+        vxorps xmm4,xmm4,xmm4
+        vcvtsi2sd xmm4,xmm4,edx
+        vfmsub231sd xmm2,xmm4,xmm8
+        vfmsub132sd xmm6,xmm5,xmm4
+        vfmsub132sd xmm4,xmm1,xmm9
+        vmulsd xmm4,xmm6,xmm4
+        vucomisd xmm7,xmm4
+        vsqrtsd xmm8,xmm4,xmm4
+        ja     205 <correlation_ref+0x205>
+        vdivsd xmm0,xmm2,xmm8
+        ret
+        nop    DWORD PTR [rax]
+        vzeroupper
+        jmp    186 <correlation_ref+0x186>
+        nop    DWORD PTR [rax]
+        vxorpd xmm7,xmm7,xmm7
+        vmovapd xmm1,xmm7
+        vmovapd xmm5,xmm7
+        vmovapd xmm2,xmm7
+        vmovapd xmm8,xmm7
+        vmovapd xmm9,xmm7
+        vmovapd xmm6,xmm7
+        jmp    192 <correlation_ref+0x192>
+        vxorpd xmm7,xmm7,xmm7
+        xor    eax,eax
+        vmovapd xmm8,xmm7
+        vmovapd xmm9,xmm7
+        vmovapd xmm6,xmm7
+        vmovapd xmm1,xmm7
+        vmovapd xmm5,xmm7
+        jmp    10d <correlation_ref+0x10d>
+        lea    r10,[rsp+0x8]
+        and    rsp,0xffffffffffffffe0
+        vmovapd xmm0,xmm4
+        push   QWORD PTR [r10-0x8]
+        push   rbp
+        mov    rbp,rsp
+        push   r10
+        sub    rsp,0x28
+        vmovsd QWORD PTR [rbp-0x20],xmm2
+        vmovsd QWORD PTR [rbp-0x18],xmm8
+        call   22f <correlation_ref+0x22f>
+        vmovsd xmm2,QWORD PTR [rbp-0x20]
+        vmovsd xmm8,QWORD PTR [rbp-0x18]
+        add    rsp,0x28
+        pop    r10
+        pop    rbp
+        vdivsd xmm0,xmm2,xmm8
+        lea    rsp,[r10-0x8]
+        ret
+
+        edx <&> edx
+        <= : 1c8 <correlation_ref+0x1c8>
+        eax = &[rdx-1]
+        eax u<= 2 : 1e6 <correlation_ref+0x1e6>
+        -
+        ecx = edx
+        xmm7d v|=| 0
+        eax = 0
+        xmm8d v|=a| xmm7
+        ecx u>>= 2
+        xmm9d v|=a| xmm7
+        xmm6d v|=a| xmm7
+        rcx <<= 5
+        xmm1d v|=a| xmm7
+        xmm5d v|=a| xmm7
+        nop 2bytes[rax+rax*1+0]
+        ymm0d v|=u| 32bytes[rdi+rax*1]
+        ymm10d v|=u| 32bytes[rsi+rax*1]
+        rax += 20h
+        xmm5d v= xmm0 + xmm5
+        xmm2d v|=| unpackhi(xmm0, xmm0)
+        xmm1d v= xmm10 + xmm1
+        xmm3d v|=| ymm0d[2:4]
+        xmm2d v= xmm2 + xmm5
+        xmm5d v= xmm3 + xmm2
+        xmm2d v|=| unpackhi(xmm10, xmm10)
+        xmm3d v|=| unpackhi(xmm3, xmm3)
+        xmm1d v= xmm1 + xmm2
+        xmm5d v= xmm5 + xmm3
+        xmm3d v|=| ymm10d[2:4]
+        xmm2d v= xmm1 + xmm3
+        xmm1d v|=| unpackhi(xmm3, xmm3)
+        ymm3d v|=| ymm10 * ymm10
+        xmm1d v= xmm2 + xmm1
+        ymm2d v|=| ymm0 * ymm0
+        ymm0d v|=| ymm0 * ymm10
+        xmm6d v= xmm6 + xmm2
+        xmm4d v|=| unpackhi(xmm2, xmm2)
+        xmm2d v|=| ymm2d[2:4]
+        xmm6d v= xmm6 + xmm4
+        xmm4d v= xmm9 + xmm3
+        xmm6d v= xmm6 + xmm2
+        xmm2d v|=| unpackhi(xmm2, xmm2)
+        xmm6d v= xmm6 + xmm2
+        xmm2d v|=| unpackhi(xmm3, xmm3)
+        xmm3d v|=| ymm3d[2:4]
+        xmm4d v= xmm4 + xmm2
+        xmm2d v= xmm8 + xmm0
+        xmm4d v= xmm4 + xmm3
+        xmm3d v|=| unpackhi(xmm3, xmm3)
+        xmm9d v= xmm4 + xmm3
+        xmm3d v|=| unpackhi(xmm0, xmm0)
+        xmm0d v|=| ymm0d[2:4]
+        xmm2d v= xmm2 + xmm3
+        xmm2d v= xmm2 + xmm0
+        xmm0d v|=| unpackhi(xmm0, xmm0)
+        xmm8d v= xmm2 + xmm0
+        rcx != rax : 40 <correlation_ref+0x40>
+        -
+        eax = edx
+        eax &= 0fffffffch
+        dl <&> 3
+        == : 1c0 <correlation_ref+0x1c0>
+        vzeroupper
+        rcx = sx(eax)
+        xmm2d v= 8bytes[rdi+rcx*8]
+        xmm0d v= 8bytes[rsi+rcx*8]
+        ecx = &[rax+1]
+        xmm6d v= xmm2 * xmm2 + xmm6
+        xmm9d v= xmm0 * xmm0 + xmm9
+        xmm5d v= xmm5 + xmm2
+        xmm8d v= xmm2 * xmm0 + xmm8
+        xmm1d v= xmm1 + xmm0
+        edx <= ecx : 186 <correlation_ref+0x186>
+        -
+        rcx = sx(ecx)
+        eax += 2
+        xmm2d v= 8bytes[rdi+rcx*8]
+        xmm0d v= 8bytes[rsi+rcx*8]
+        xmm6d v= xmm2 * xmm2 + xmm6
+        xmm9d v= xmm0 * xmm0 + xmm9
+        xmm5d v= xmm5 + xmm2
+        xmm8d v= xmm2 * xmm0 + xmm8
+        xmm1d v= xmm1 + xmm0
+        edx <= eax : 186 <correlation_ref+0x186>
+        -
+        rax = sx(eax)
+        xmm0d v= 8bytes[rdi+rax*8]
+        xmm2d v= 8bytes[rsi+rax*8]
+        xmm6d v= xmm0 * xmm0 + xmm6
+        xmm9d v= xmm2 * xmm2 + xmm9
+        xmm5d v= xmm5 + xmm0
+        xmm8d v= xmm2 * xmm0 + xmm8
+        xmm1d v= xmm1 + xmm2
+        xmm2d v= xmm1 * xmm5
+        xmm5d v= xmm5 * xmm5
+        xmm1d v= xmm1 * xmm1
+        xmm4s v|=| 0
+        xmm4d v= float(edx)
+        xmm2d v= xmm4 * xmm8 - xmm2
+        xmm6d v= xmm6 * xmm4 - xmm5
+        xmm4d v= xmm4 * xmm9 - xmm1
+        xmm4d v= xmm6 * xmm4
+        xmm7d vuo<=> xmm4d
+        xmm8d v= sqrt(xmm4d[0]), xmm4d[1]
+        u> : 205 <correlation_ref+0x205>
+        xmm0d v= xmm2 / xmm8
+        ret
+        nop 4bytes[rax]
+        vzeroupper
+        :186 <correlation_ref+0x186>
+        nop 4bytes[rax]
+        xmm7d v|=| 0
+        xmm1d v|=a| xmm7
+        xmm5d v|=a| xmm7
+        xmm2d v|=a| xmm7
+        xmm8d v|=a| xmm7
+        xmm9d v|=a| xmm7
+        xmm6d v|=a| xmm7
+        :192 <correlation_ref+0x192>
+        xmm7d v|=| 0
+        eax = 0
+        xmm8d v|=a| xmm7
+        xmm9d v|=a| xmm7
+        xmm6d v|=a| xmm7
+        xmm1d v|=a| xmm7
+        xmm5d v|=a| xmm7
+        :10d <correlation_ref+0x10d>
+        r10 = &[rsp+8]
+        rsp &= 0ffffffffffffffe0h
+        xmm0d v|=a| xmm4
+        push 8bytes[r10-8]
+        push rbp
+        rbp = rsp
+        push r10
+        rsp -= 28h
+        8bytes[rbp-20h] v= xmm2d
+        8bytes[rbp-18h] v= xmm8d
+        22f <correlation_ref+0x22f>(...)
+        xmm2d v= 8bytes[rbp-20h]
+        xmm8d v= 8bytes[rbp-18h]
+        rsp += 28h
+        pop r10
+        pop rbp
+        xmm0d v= xmm2 / xmm8
+        rsp = &[r10-8]
+        ret
