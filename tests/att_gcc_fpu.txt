@@ -1,0 +1,100 @@
+// gcc-9 -O2 -mno-sse test.c -S
+// gcc-9 -O2 -mno-sse test.c -S -masm=intel
+float r, a;
+void f() {r *= a;}
+
+        flds    r(%rip)
+        fmuls   a(%rip)
+        fstps   r(%rip)
+        ret
+
+        fld     DWORD PTR r[rip]
+        fmul    DWORD PTR a[rip]
+        fstp    DWORD PTR r[rip]
+        ret
+
+        fst.load(4bytes[r+rip])
+        fst0 *= 4bytes[a+rip]
+        4bytes[r+rip] = fst.pop()
+        ret
+
+------------------------------------------
+
+double r, a;
+void f() {r *= a;}
+
+        fldl    r(%rip)
+        fmull   a(%rip)
+        fstpl   r(%rip)
+        ret
+
+        fld     QWORD PTR r[rip]
+        fmul    QWORD PTR a[rip]
+        fstp    QWORD PTR r[rip]
+        ret
+
+        fst.load(8bytes[r+rip])
+        fst0 *= 8bytes[a+rip]
+        8bytes[r+rip] = fst.pop()
+        ret
+
+------------------------------------------
+
+long double r, a;
+void f() {r *= a;}
+
+        fldt    r(%rip)
+        fldt    a(%rip)
+        fmulp   %st, %st(1)
+        fstpt   r(%rip)
+        ret
+
+        fld     TBYTE PTR r[rip]
+        fld     TBYTE PTR a[rip]
+        fmulp   st(1), st
+        fstp    TBYTE PTR r[rip]
+        ret
+
+        fst.load(10bytes[r+rip])
+        fst.load(10bytes[a+rip])
+        fst1 *= fst.pop()
+        10bytes[r+rip] = fst.pop()
+        ret
+
+------------------------------------------
+
+long double r;
+short i1;
+int i2;
+long int i3;
+void f() {r *= i1; r *= i2; r *= i3;}
+
+        filds   i1(%rip)
+        fldt    r(%rip)
+        fmulp   %st, %st(1)
+        fildl   i2(%rip)
+        fmulp   %st, %st(1)
+        fildq   i3(%rip)
+        fmulp   %st, %st(1)
+        fstpt   r(%rip)
+        ret
+
+        fild    WORD PTR i1[rip]
+        fld     TBYTE PTR r[rip]
+        fmulp   st(1), st
+        fild    DWORD PTR i2[rip]
+        fmulp   st(1), st
+        fild    QWORD PTR i3[rip]
+        fmulp   st(1), st
+        fstp    TBYTE PTR r[rip]
+        ret
+
+        fst.load_int(2bytes[i1+rip])
+        fst.load(10bytes[r+rip])
+        fst1 *= fst.pop()
+        fst.load_int(4bytes[i2+rip])
+        fst1 *= fst.pop()
+        fst.load_int(8bytes[i3+rip])
+        fst1 *= fst.pop()
+        10bytes[r+rip] = fst.pop()
+        ret

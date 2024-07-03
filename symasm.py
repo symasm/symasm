@@ -217,6 +217,7 @@ asm_sizes = {
     'real4' : '4bytes',
     'real8' : '8bytes',
     'real10': '10bytes',
+    'tbyte' : '10bytes',
     'xmmword' : '16bytes',
     'ymmword' : '32bytes',
     'zmmword' : '64bytes',

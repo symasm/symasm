@@ -28,6 +28,10 @@ def fix_number(imm):
 
 att_suffixes = {'b':1, 'w':2, 'l':4, 'q':8, 't':10, 'o':16}
 
+att_fpu_int_suffixes = {'s':2, 'l':4, 'q':8}
+
+att_fpu_suffixes = {'s':4, 'l':8, 't':10}
+
 # [https://stackoverflow.com/questions/6555094/what-does-cltq-do-in-assembly <- google:‘cltq asm’]
 att_instructions_without_operands = {
     'cbtw' : 'cbw',
@@ -75,15 +79,22 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
 
         elif toks[0].string[0] == '%': # register
             r = fix_reg(toks[0].string[1:])
-            assert(is_reg(r) and len(toks) == 1)
-            if is_cpu_gp_reg(r):
-                sz = cpu_gp_reg_size(r)
-                if reg_size == 0:
-                    reg_size = sz
-                else:
-                    if reg_size != sz and not mnem.startswith(('movs', 'movz')):
-                        if errors is not None:
-                            errors.append(error_at_token(f'register size mismatch ({sz}, expected {reg_size})', toks[0]))
+            if mnem[0] == 'f':
+                if mnem != 'fstsw':
+                    assert(r.lower() == 'st')
+                    if len(toks) != 1:
+                        assert(len(toks) == 4 and toks[1].string == '(' and toks[2].string.isdigit() and toks[3].string == ')')
+                        r = source[toks[0].start+1:toks[-1].end]
+            else:
+                assert(is_reg(r) and len(toks) == 1)
+                if is_cpu_gp_reg(r):
+                    sz = cpu_gp_reg_size(r)
+                    if reg_size == 0:
+                        reg_size = sz
+                    else:
+                        if reg_size != sz and not mnem.startswith(('movs', 'movz')):
+                            if errors is not None:
+                                errors.append(error_at_token(f'register size mismatch ({sz}, expected {reg_size})', toks[0]))
 # (
         elif toks[-1].string == ')': # indirect
             for i, tok in enumerate(toks):
@@ -132,7 +143,22 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
                     if simd_size != 0: # SIMD instructions have no suffix
                         r = f'{simd_size}bytes[{r}]'
                     else:
-                        mem_size = att_suffixes[mnem[-2] if mnem.startswith(('movs', 'movz')) else mnem[-1]]
+                        if mnem[0] == 'f':
+                            if mnem == 'fbld':
+                                mnem += ' '
+                                mem_size = 10
+                            elif mnem in ('fstsw', 'fstcw', 'fldcw'):
+                                mnem += ' '
+                                mem_size = 2
+                            elif mnem in ('fildll', 'fistpll', 'fisttpll'):
+                                mnem = mnem[:-1]
+                                mem_size = 8
+                            elif mnem[1] == 'i':
+                                mem_size = att_fpu_int_suffixes[mnem[-1]]
+                            else:
+                                mem_size = att_fpu_suffixes[mnem[-1]]
+                        else:
+                            mem_size = att_suffixes[mnem[-2] if mnem.startswith(('movs', 'movz')) else mnem[-1]]
                         r = size_keyword(mem_size) + '[' + r + ']'
                     break
             else:

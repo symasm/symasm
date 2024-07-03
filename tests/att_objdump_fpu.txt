@@ -1,0 +1,329 @@
+// gcc-9 -c -O2 -mno-sse test.c && (objdump -d --no-show-raw-insn test.o -M suffix | cut -d ':' -f 2-) && (objdump -d --no-show-raw-insn test.o -M intel | cut -d ':' -f 2-)
+float r, a;
+void f() {r *= a;}
+
+        flds   0x0(%rip)        # 6 <f+0x6>
+        fmuls  0x0(%rip)        # c <f+0xc>
+        fstps  0x0(%rip)        # 12 <f+0x12>
+        retq
+
+        fld    DWORD PTR [rip+0x0]        # 6 <f+0x6>
+        fmul   DWORD PTR [rip+0x0]        # c <f+0xc>
+        fstp   DWORD PTR [rip+0x0]        # 12 <f+0x12>
+        ret
+
+        fst.load(4bytes[rip+0])
+        fst0 *= 4bytes[rip+0]
+        4bytes[rip+0] = fst.pop()
+        ret
+
+------------------------------------------
+
+double r, a;
+void f() {r *= a;}
+
+        fldl   0x0(%rip)        # 6 <f+0x6>
+        fmull  0x0(%rip)        # c <f+0xc>
+        fstpl  0x0(%rip)        # 12 <f+0x12>
+        retq
+
+        fld    QWORD PTR [rip+0x0]        # 6 <f+0x6>
+        fmul   QWORD PTR [rip+0x0]        # c <f+0xc>
+        fstp   QWORD PTR [rip+0x0]        # 12 <f+0x12>
+        ret
+
+        fst.load(8bytes[rip+0])
+        fst0 *= 8bytes[rip+0]
+        8bytes[rip+0] = fst.pop()
+        ret
+
+------------------------------------------
+
+long double r, a;
+void f() {r *= a;}
+
+        fldt   0x0(%rip)        # 6 <f+0x6>
+        fldt   0x0(%rip)        # c <f+0xc>
+        fmulp  %st,%st(1)
+        fstpt  0x0(%rip)        # 14 <f+0x14>
+        retq
+
+        fld    TBYTE PTR [rip+0x0]        # 6 <f+0x6>
+        fld    TBYTE PTR [rip+0x0]        # c <f+0xc>
+        fmulp  st(1),st
+        fstp   TBYTE PTR [rip+0x0]        # 14 <f+0x14>
+        ret
+
+        fst.load(10bytes[rip+0])
+        fst.load(10bytes[rip+0])
+        fst1 *= fst.pop()
+        10bytes[rip+0] = fst.pop()
+        ret
+
+------------------------------------------
+
+long double r;
+short i1;
+int i2;
+long int i3;
+void f() {r *= i1; r *= i2; r *= i3;}
+
+        filds  0x0(%rip)        # 6 <f+0x6>
+        fldt   0x0(%rip)        # c <f+0xc>
+        fmulp  %st,%st(1)
+        fildl  0x0(%rip)        # 14 <f+0x14>
+        fmulp  %st,%st(1)
+        fildll 0x0(%rip)        # 1c <f+0x1c>
+        fmulp  %st,%st(1)
+        fstpt  0x0(%rip)        # 24 <f+0x24>
+        retq
+
+        fild   WORD PTR [rip+0x0]        # 6 <f+0x6>
+        fld    TBYTE PTR [rip+0x0]        # c <f+0xc>
+        fmulp  st(1),st
+        fild   DWORD PTR [rip+0x0]        # 14 <f+0x14>
+        fmulp  st(1),st
+        fild   QWORD PTR [rip+0x0]        # 1c <f+0x1c>
+        fmulp  st(1),st
+        fstp   TBYTE PTR [rip+0x0]        # 24 <f+0x24>
+        ret
+
+        fst.load_int(2bytes[rip+0])
+        fst.load(10bytes[rip+0])
+        fst1 *= fst.pop()
+        fst.load_int(4bytes[rip+0])
+        fst1 *= fst.pop()
+        fst.load_int(8bytes[rip+0])
+        fst1 *= fst.pop()
+        10bytes[rip+0] = fst.pop()
+        ret
+
+------------------------------------------
+
+void f()
+{
+asm(".intel_syntax noprefix");
+asm("fld QWORD PTR [esp+8] ");
+asm("fld st(2)             ");
+asm("fldz                  ");
+asm("fld1                  ");
+asm("fldpi                 ");
+asm("fldl2t                ");
+asm("fldl2e                ");
+asm("fldlg2                ");
+asm("fldln2                ");
+asm("fst QWORD PTR [esp]   ");
+asm("fstp QWORD PTR [esp]  ");
+asm("fstp st               ");
+asm("fincstp               ");
+asm("fdecstp               ");
+asm("fst st(2)             ");
+asm("fstp st(2)            ");
+asm("fxch st(2)            ");
+asm("fadd st(0), st(2)     ");
+asm("fmulp st(1), st(0)    ");
+asm("fdivp st(1), st(0)    ");
+asm("fdivrp st(1), st(0)   ");
+asm("FSUB ST(0), ST(1)     ");
+asm("FSUB ST(1), ST(0)     ");
+asm("FSUBP ST(1), ST(0)    ");
+asm("FSUB DWORD PTR [rax]  ");
+asm("FISUB DWORD PTR [rbx] ");
+asm("FSUBR ST(0), ST(1)    ");
+asm("FSUBR ST(1), ST(0)    ");
+asm("FSUBRP ST(1), ST(0)   ");
+asm("FSUBR DWORD PTR [rax] ");
+asm("FISUBR WORD PTR [rbx] ");
+asm("fbld [rdx]            ");
+asm("fild QWORD PTR [esp+8]");
+asm("fist DWORD PTR [esp]  ");
+asm("fistp QWORD PTR [esp] ");
+asm("fisttp QWORD PTR [esp]");
+asm("fcom st(2)            ");
+asm("ftst                  ");
+asm("fucom st(2)           ");
+asm("fcomp st(2)           ");
+asm("fcompp                ");
+asm("fcomi st, st(2)       ");
+asm("fcomip st, st(2)      ");
+asm("fucomi st, st(2)      ");
+asm("fcmovb st(0), st(1)   ");
+asm("frndint               ");
+asm("fsqrt                 ");
+asm("fabs                  ");
+asm("fchs                  ");
+asm("fsin                  ");
+asm("fsincos               ");
+asm("fstsw ax              ");
+asm("fstcw [rax]           ");
+asm("fldcw [rax]           ");
+}
+// gcc-9 -c -O2 test.c && (objdump -d --no-show-raw-insn test.o -M suffix | cut -d ':' -f 2-) && (objdump -d --no-show-raw-insn test.o -M intel | cut -d ':' -f 2-)
+
+        fldl   0x8(%esp)
+        fld    %st(2)
+        fldz
+        fld1
+        fldpi
+        fldl2t
+        fldl2e
+        fldlg2
+        fldln2
+        fstl   (%esp)
+        fstpl  (%esp)
+        fstp   %st(0)
+        fincstp
+        fdecstp
+        fst    %st(2)
+        fstp   %st(2)
+        fxch   %st(2)
+        fadd   %st(2),%st
+        fmulp  %st,%st(1)
+        fdivrp %st,%st(1)
+        fdivp  %st,%st(1)
+        fsub   %st(1),%st
+        fsubr  %st,%st(1)
+        fsubrp %st,%st(1)
+        fsubs  (%rax)
+        fisubl (%rbx)
+        fsubr  %st(1),%st
+        fsub   %st,%st(1)
+        fsubp  %st,%st(1)
+        fsubrs (%rax)
+        fisubrs (%rbx)
+        fbld   (%rdx)
+        fildll 0x8(%esp)
+        fistl  (%esp)
+        fistpll (%esp)
+        fisttpll (%esp)
+        fcom   %st(2)
+        ftst
+        fucom  %st(2)
+        fcomp  %st(2)
+        fcompp
+        fcomi  %st(2),%st
+        fcomip %st(2),%st
+        fucomi %st(2),%st
+        fcmovb %st(1),%st
+        frndint
+        fsqrt
+        fabs
+        fchs
+        fsin
+        fsincos
+        fstsw  %ax
+        fstcw  (%rax)
+        fldcw  (%rax)
+        retq
+
+        fld    QWORD PTR [esp+0x8]
+        fld    st(2)
+        fldz
+        fld1
+        fldpi
+        fldl2t
+        fldl2e
+        fldlg2
+        fldln2
+        fst    QWORD PTR [esp]
+        fstp   QWORD PTR [esp]
+        fstp   st(0)
+        fincstp
+        fdecstp
+        fst    st(2)
+        fstp   st(2)
+        fxch   st(2)
+        fadd   st,st(2)
+        fmulp  st(1),st
+        fdivrp st(1),st
+        fdivp  st(1),st
+        fsub   st,st(1)
+        fsubr  st(1),st
+        fsubrp st(1),st
+        fsub   DWORD PTR [rax]
+        fisub  DWORD PTR [rbx]
+        fsubr  st,st(1)
+        fsub   st(1),st
+        fsubp  st(1),st
+        fsubr  DWORD PTR [rax]
+        fisubr WORD PTR [rbx]
+        fbld   TBYTE PTR [rdx]
+        fild   QWORD PTR [esp+0x8]
+        fist   DWORD PTR [esp]
+        fistp  QWORD PTR [esp]
+        fisttp QWORD PTR [esp]
+        fcom   st(2)
+        ftst
+        fucom  st(2)
+        fcomp  st(2)
+        fcompp
+        fcomi  st,st(2)
+        fcomip st,st(2)
+        fucomi st,st(2)
+        fcmovb st,st(1)
+        frndint
+        fsqrt
+        fabs
+        fchs
+        fsin
+        fsincos
+        fstsw  ax
+        fstcw  WORD PTR [rax]
+        fldcw  WORD PTR [rax]
+        ret
+
+        fst.load(8bytes[esp+8])
+        fst.load(fst2)
+        fst.load(0)
+        fst.load(1)
+        fst.load_pi()
+        fst.load_log2(10)
+        fst.load_log2(e)
+        fst.load_lg(2)
+        fst.load_ln(2)
+        8bytes[esp] = fst0
+        8bytes[esp] = fst.pop()
+        fst.pop()
+        fst.top++
+        fst.top--
+        fst2 = fst0
+        fst2 = fst.pop()
+        fst0 >< fst2
+        fst0 += fst2
+        fst1 *= fst.pop()
+        fst1 = fst.pop() / fst1
+        fst1 /= fst.pop()
+        fst0 -= fst1
+        fst1 = fst0 - fst1
+        fst1 = fst.pop() - fst1
+        fst0 -= 4bytes[rax]
+        fst0 -= read_int(4bytes[rbx])
+        fst0 = fst1 - fst0
+        fst1 -= fst0
+        fst1 -= fst.pop()
+        fst0 = 4bytes[rax] - fst0
+        fst0 = read_int(2bytes[rbx]) - fst0
+        fst.load_bcd(10bytes[rdx])
+        fst.load_int(8bytes[esp+8])
+        4bytes[esp] = int(round(fst0))
+        8bytes[esp] = int(round(fst.pop()))
+        8bytes[esp] = int(fst.pop())
+        fpu.sw = fst0 <=> fst2
+        fpu.sw = fst0 <=> 0
+        fpu.sw = fst0 uo<=> fst2
+        fpu.sw = fst.pop() <=> fst2
+        fpu.sw = fst.pop() <=> fst1, fst.pop()
+        fst0 <=> fst2
+        fst.pop() <=> fst2
+        fst0 uo<=> fst2
+        fst0 = fst1 if u<
+        fst0 = round(fst0)
+        fst0 = sqrt(fst0)
+        fst0 = abs(fst0)
+        fst0 = -fst0
+        fst0 = sin(fst0)
+        fst1, fst0 = sincos(fst0)
+        ax = fpu.sw
+        2bytes[rax] = fpu.cw
+        fpu.cw = 2bytes[rax]
+        ret

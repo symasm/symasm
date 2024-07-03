@@ -23,15 +23,15 @@ FSUB ST(0), ST(1)      ; fst0 -= fst1
 FSUB ST(1), ST(0)      ; fst1 -= fst0
 FSUBP ST(1), ST(0)     ; fst1 -= fst.pop()
 FSUB REAL4 PTR [f]     ; fst0 -= 4bytes[f]
-FISUB REAL4 PTR [i]    ; fst0 -= read_int(4bytes[i])
+FISUB DWORD PTR [i]    ; fst0 -= read_int(4bytes[i])
 FSUBR ST(0), ST(1)     ; fst0 = fst1 - fst0
 FSUBR ST(1), ST(0)     ; fst1 = fst0 - fst1
 FSUBRP ST(1), ST(0)    ; fst1 = fst.pop() - fst1
 FSUBR REAL4 PTR [f]    ; fst0 = 4bytes[f] - fst0
-FISUBR REAL4 PTR [i]   ; fst0 = read_int(4bytes[i]) - fst0
+FISUBR DWORD PTR [i]   ; fst0 = read_int(4bytes[i]) - fst0
 fbld [bcd_num]         ; fst.load_bcd([bcd_num])
 fild QWORD PTR [esp+8] ; fst.load_int(8bytes[esp+8])
-fist QWORD PTR [esp]   ; 8bytes[esp] = int(round(fst0))
+fist DWORD PTR [esp]   ; 4bytes[esp] = int(round(fst0))
 fistp QWORD PTR [esp]  ; 8bytes[esp] = int(round(fst.pop()))
 fisttp QWORD PTR [esp] ; 8bytes[esp] = int(fst.pop())
 fcom st(2)             ; fpu.sw = fst0 <=> fst2
