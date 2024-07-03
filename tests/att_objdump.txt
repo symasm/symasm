@@ -37,7 +37,7 @@ int intfunc(int a, int b) { return a + b*4 + 3; }
         lea    eax,[rdi+rsi*4+0x3]
         ret
 
-        eax = &[rdi+rsi*4+3h]
+        eax = &[rdi+rsi*4+3]
         ret
 
 ------------------------------------------
@@ -50,7 +50,7 @@ int intfunc(int a, int b) { return a + b*4 - 3; }
         lea    eax,[rdi+rsi*4-0x3]
         ret
 
-        eax = &[rdi+rsi*4-3h]
+        eax = &[rdi+rsi*4-3]
         ret
 
 ------------------------------------------
@@ -68,9 +68,9 @@ void intfunc() { b = a + 3; }
         mov    DWORD PTR [rip+0x0],eax        # f <intfunc+0xf>
         ret
 
-        eax = 4bytes[rip+0h]
-        eax += 3h
-        4bytes[rip+0h] = eax
+        eax = 4bytes[rip+0]
+        eax += 3
+        4bytes[rip+0] = eax
         ret
 
 ------------------------------------------
@@ -86,8 +86,8 @@ void intfunc() { b = a * -123; }
         mov    DWORD PTR [rip+0x0],eax        # d <intfunc+0xd>
         ret
 
-        eax = 4bytes[rip+0h] * 0ffffff85h
-        4bytes[rip+0h] = eax
+        eax = 4bytes[rip+0] * 0ffffff85h
+        4bytes[rip+0] = eax
         ret
 
 ------------------------------------------
@@ -117,7 +117,7 @@ int arri(size_t i) {return arr[i];}
         mov    eax,DWORD PTR [rax+rdi*4]
         ret
 
-        rax = &[rip+0h]
+        rax = &[rip+0]
         eax = 4bytes[rax+rdi*4]
         ret
 
@@ -135,8 +135,8 @@ int arri(size_t i) {return arr[i+1];}
         mov    eax,DWORD PTR [rax+rdi*4+0x4]
         ret
 
-        rax = &[rip+0h]
-        eax = 4bytes[rax+rdi*4+4h]
+        rax = &[rip+0]
+        eax = 4bytes[rax+rdi*4+4]
         ret
 
 ------------------------------------------
@@ -149,7 +149,7 @@ int arri(char *arr) {return arr[-1];}
         movsx  eax,BYTE PTR [rdi-0x1]
         ret
 
-        eax = sx(byte[rdi-1h])
+        eax = sx(byte[rdi-1])
         ret
 
 ------------------------------------------
@@ -162,7 +162,7 @@ int arri(short *arr) {return arr[-1];}
         movsx  eax,WORD PTR [rdi-0x2]
         ret
 
-        eax = sx(2bytes[rdi-2h])
+        eax = sx(2bytes[rdi-2])
         ret
 
 ------------------------------------------
@@ -230,7 +230,7 @@ void set_byte(char *p) {*p = 0;}
         mov    BYTE PTR [rdi],0x0
         ret
 
-        byte[rdi] = 0h
+        byte[rdi] = 0
         ret
 
 ------------------------------------------
@@ -259,7 +259,7 @@ void set_4bytes(int *p) {*p = 0;}
         mov    DWORD PTR [rdi],0x0
         ret
 
-        4bytes[rdi] = 0h
+        4bytes[rdi] = 0
         ret
 
 ------------------------------------------
@@ -272,7 +272,7 @@ void set_8bytes(long *p) {*p = 0;}
         mov    QWORD PTR [rdi],0x0
         ret
 
-        8bytes[rdi] = 0h
+        8bytes[rdi] = 0
         ret
 
 ------------------------------------------
@@ -301,12 +301,12 @@ void sum()
         movaps XMMWORD PTR [rip+0x0],xmm0        # 2a <sum+0x2a>
         ret
 
-        xmm0s |=a| 16bytes[rip+0h]
-        xmm0s |+=| 16bytes[rip+0h]
-        16bytes[rip+0h] |=a| xmm0s
-        xmm0s |=a| 16bytes[rip+0h]
-        xmm0s |+=| 16bytes[rip+0h]
-        16bytes[rip+0h] |=a| xmm0s
+        xmm0s |=a| 16bytes[rip+0]
+        xmm0s |+=| 16bytes[rip+0]
+        16bytes[rip+0] |=a| xmm0s
+        xmm0s |=a| 16bytes[rip+0]
+        xmm0s |+=| 16bytes[rip+0]
+        16bytes[rip+0] |=a| xmm0s
         ret
 
 ------------------------------------------
@@ -325,8 +325,8 @@ void sum()
         vzeroupper
         ret
 
-        ymm1s v|=u| 32bytes[rip+0h]
-        ymm0s v|=| ymm1 + 32bytes[rip+0h]
-        32bytes[rip+0h] v|=u| ymm0s
+        ymm1s v|=u| 32bytes[rip+0]
+        ymm0s v|=| ymm1 + 32bytes[rip+0]
+        32bytes[rip+0] v|=u| ymm0s
         vzeroupper
         ret

@@ -23,7 +23,7 @@ def is_att_number(s):
 
 def fix_number(imm):
     if imm.startswith(('0x', '0X')):
-        return '0'*(not imm[2].isdigit()) + imm[2:] + 'h'# * (not (len(imm) == 3 and imm[2].isdigit()))
+        return '0'*(not imm[2].isdigit()) + imm[2:] + 'h' * (not (len(imm) == 3 and imm[2].isdigit()))
     return imm
 
 att_suffixes = {'b':1, 'w':2, 'l':4, 'q':8, 't':10, 'o':16}
@@ -45,7 +45,7 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
 
     if mnem == 'nopw':
         assert(len(operands) == 1 and source[operands[0][0].start:operands[0][-1].end] == '%cs:0x0(%rax,%rax,1)')
-        ops.append('2bytes[cs:rax+rax*1+0h]')
+        ops.append('2bytes[cs:rax+rax*1+0]')
         return 'nop'
 
     simd_size = 0

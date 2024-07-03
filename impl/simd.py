@@ -480,7 +480,7 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
 
     elif mnem in ('vextractf128', 'vextracti128'):
         if coc(3, ops, token, errors):
-            assert(ops[2] in ('1', '1h'))
+            assert(ops[2] == '1')
             ty = 'd' if mnem == 'vextractf128' else 'l'
             return simd_reg_mem(ops[0], ty) + ' v|=| ' + ops[1] + ty + '[2:4]'
 

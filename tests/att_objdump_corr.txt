@@ -157,18 +157,18 @@ double correlation_ref(const double x[], const double y[], int n)
         edx <&> edx
         <= : c0 <_Z15correlation_refPKdS0_i+0xc0>
         xmm7 |=| 0
-        r8i = &[rdx-1h]
+        r8i = &[rdx-1]
         eax = 0
         xmm3d |=a| xmm7
         xmm6d |=a| xmm7
         xmm2d |=a| xmm7
         xmm4d |=a| xmm7
         xmm5d |=a| xmm7
-        nop 2bytes[cs:rax+rax*1+0h]
+        nop 2bytes[cs:rax+rax*1+0]
         xmm0d = 8bytes[rdi+rax*8]
         xmm1d = 8bytes[rsi+rax*8]
         rcx = rax
-        rax += 1h
+        rax += 1
         xmm8d |=a| xmm0
         xmm5d += xmm0
         xmm4d += xmm1
@@ -211,10 +211,10 @@ double correlation_ref(const double x[], const double y[], int n)
         xmm2d |=a| xmm7
         :84 <_Z15correlation_refPKdS0_i+0x84>
         rsp -= 18h
-        8bytes[rsp+8h] = xmm3d
+        8bytes[rsp+8] = xmm3d
         8bytes[rsp] = xmm1d
         f2 <_Z15correlation_refPKdS0_i+0xf2>(...)
-        xmm3d = 8bytes[rsp+8h]
+        xmm3d = 8bytes[rsp+8]
         xmm1d = 8bytes[rsp]
         rsp += 18h
         xmm3d /= xmm1
