@@ -563,6 +563,36 @@ def translate_to_symasm(lang, tokens, source, errors: List[Error] = None, insert
     empty: List[Tuple[List[Token], str]] = []
     return empty
 
+def answer(request):
+    if request == '':
+        return '?'
+
+    if request[0] == '?' or request[-1] == '?':
+        pass
+
+    if request[0] == '!': return 'jn' + request[1] + request[4:] # just for `!o : skip_int_4` [-REMOVE ME ASAP-]
+
+    errors: List[Error] = []
+    tokens = tokenize(request, errors)
+    def error():
+        for e in errors:
+            return ' ' * e.pos + '^' * max(1, e.end - e.pos) + "\nError: " + e.message
+    if len(errors) != 0:
+        return error()
+
+    lang = detect_input_language(tokens)
+    if lang == 'symasm':
+        return 'symasm -> MASM translation is not supported yet'
+
+    translation = translate_to_symasm(lang, tokens, request, errors)
+    if len(errors) != 0:
+        return error()
+    assert(len(translation) == 1)
+    if translation[0][1] != '':
+        return translation[0][1]
+    else:
+        return request
+
 if __name__ == '__main__':
     if '-h' in sys.argv or '--help' in sys.argv:
         print(
@@ -663,44 +693,8 @@ Options:
 
     if args_infile.isatty(): # interactive mode
         while True:
-            request = input('>')
-
-            if request == '':
-                print('?')
-                continue
-
-            if request[0] == '?' or request[-1] == '?':
-                pass
-
-            if request[0] == '!': print(' jn' + request[1] + request[4:]); continue # just for `!o : skip_int_4` [-REMOVE ME ASAP-]
-
-            errors: List[Error] = []
-            tokens = tokenize(request, errors)
-            def print_error():
-                if len(errors) > 0:
-                    for e in errors:
-                        print(' ' * (e.pos + 1) + '^' * max(1, e.end - e.pos))
-                        print('Error: ' + e.message)
-                        break
-                    return True
-                return False
-            if print_error():
-                continue
-
-            lang = detect_input_language(tokens)
-            if lang == 'symasm':
-                print('symasm -> MASM translation is not supported yet')
-                continue
-
-            translation = translate_to_symasm(lang, tokens, request, errors)
-            if print_error():
-                continue
-            assert(len(translation) == 1)
-            if translation[0][1] != '':
-                print(' ' + translation[0][1])
-            else:
-                print(' ' + request)
-
+            print(' ' + answer(input('>')))
+            print()
         sys.exit(0)
 
     # Read and process input
@@ -745,7 +739,7 @@ Options:
     tokens = tokenize(infile_str, errors)
 
     def check_errors():
-        if len(errors) > 0:
+        if len(errors) != 0:
             for e in errors:
                 next_line_pos = infile_str.find("\n", e.pos)
                 if next_line_pos == -1:
