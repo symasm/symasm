@@ -54,10 +54,16 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
         ops.append('2bytes[' + 'cs:'*(op[0]=='%') + 'rax+rax*1+0]')
         return 'nop'
 
+    if mnem in ('callq', 'jmpq'):
+        op = source[operands[0][0].start:operands[0][-1].end]
+        if op.startswith('*%'): op = op[2:] # op = op.lstrip(‘*%’)
+        ops.append(op)
+        return mnem[:-1]
+
     simd_size = 0
     for op in operands:
         if len(op) == 1 and op[0].string[0] == '%' and is_simd_reg(op[0].string[1:]):
-            if mnem[-2] == 'p': # packed
+            if mnem[-2] == 'p' or mnem.startswith('movdq'): # packed
                 simd_size = 16 << (ord(op[0].string[1].lower()) - ord('x'))
             elif mnem[-2] == 's': # scalar
                 simd_size = {'s':4, 'd':8}[mnem[-1]]
@@ -77,7 +83,7 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
                 assert(len(toks) == 3 and len(toks[0].string) == 1 and toks[1].string == '-' and is_att_number(toks[2].string))
                 r = '-' + fix_number(toks[2].string)
 
-        elif toks[0].string[0] == '%': # register
+        elif toks[0].string[0] == '%' and toks[0].string[1:] not in ('cs', 'ds', 'es', 'fs'): # register
             r = fix_reg(toks[0].string[1:])
             if mnem[0] == 'f':
                 if mnem != 'fstsw':
@@ -92,7 +98,7 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
                     if reg_size == 0:
                         reg_size = sz
                     else:
-                        if reg_size != sz and not mnem.startswith(('movs', 'movz')):
+                        if reg_size != sz and not mnem.startswith(('movs', 'movz')) and not mnem[:-1] in ('sal', 'shl', 'sar', 'shr', 'rol', 'ror'):
                             if errors is not None:
                                 errors.append(error_at_token(f'register size mismatch ({sz}, expected {reg_size})', toks[0]))
 # (
@@ -136,10 +142,13 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
                             r += '-' + fix_number(disp[1].string)
                         elif len(disp) == 3 and disp[0].category == Token.Category.NUMERIC_LITERAL and disp[1].string == '+':
                             r = disp[2].string + '+' + r + '+' + disp[0].string
+                        elif len(disp) == 2 and disp[0].string[0] == '%' and disp[1].string == ':': # segment
+                            r = source[disp[0].start+1:disp[1].end] + r
                         else:
                             r = source[disp[0].start:disp[-1].end] + '+' + r
 
-                    assert(mem_size == 0)
+                    if mnem != 'movsb':
+                        assert(mem_size == 0)
                     if simd_size != 0: # SIMD instructions have no suffix
                         r = f'{simd_size}bytes[{r}]'
                     else:
@@ -157,8 +166,10 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
                                 mem_size = att_fpu_int_suffixes[mnem[-1]]
                             else:
                                 mem_size = att_fpu_suffixes[mnem[-1]]
+                        elif mnem.startswith('set') or mnem in ('prefetchnta', 'prefetcht0'):
+                            mem_size = 1
                         else:
-                            mem_size = att_suffixes[mnem[-2] if mnem.startswith(('movs', 'movz')) else mnem[-1]]
+                            mem_size = att_suffixes[mnem[-2] if mnem.startswith(('movs', 'movz')) and len(mnem) == 6 else mnem[-1]]
                         r = size_keyword(mem_size) + '[' + r + ']'
                     break
             else:
@@ -169,8 +180,20 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
             assert(len(toks) == 1)
             r = toks[0].string
 
-        elif len(toks) == 2 and toks[1].string.startswith('<') and toks[1].string.endswith(toks[0].string + '>'): # objdump label
+        elif len(toks) == 2 and toks[1].string.startswith('<') and toks[1].string.endswith('>'): # objdump label
             r = source[toks[0].start:toks[-1].end]
+
+        elif toks[0].category == Token.Category.NUMERIC_LITERAL: # absolute address
+            assert(len(toks) == 1)
+            assert(mem_size == 0)
+            mem_size = att_suffixes[mnem[-1]]
+            r = size_keyword(mem_size) + '[' + fix_number(toks[0].string) + ']'
+
+        elif toks[0].string[0] == '%' and toks[1].string == ':': # segment address
+            assert(len(toks) == 3)
+            assert(mem_size == 0)
+            mem_size = att_suffixes[mnem[-1]]
+            r = size_keyword(mem_size) + '[' + toks[0].string[1:] + ':' + fix_number(toks[2].string) + ']'
 
         else:
             if errors is not None:
@@ -183,11 +206,14 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
             return mnem[:-1]
         return mnem
 
-    if mnem in ('callq', 'jmpq'):
-        return mnem[:-1]
-
     if mnem in att_instructions_without_operands:
         return att_instructions_without_operands[mnem]
+
+    if mnem in ('pmovmskb', 'prefetchnta', 'prefetcht0', 'bswap'):
+        return mnem
+
+    if mnem[:-1] in ('sal', 'shl', 'sar', 'shr', 'rol', 'ror') and len(ops) == 1:
+        ops.append('1')
 
     if reg_size != 0:
         if mnem[-1] != {1:'b', 2:'w', 4:'l', 8:'q', 10:'t', 16:'o'}[reg_size]:

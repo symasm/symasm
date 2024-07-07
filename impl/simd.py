@@ -264,6 +264,9 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
         elif mnem[1:-1] in simd_int_intrinsics_with_2_operands and mnem[-1] in simd_int_types:
             if eoc(2):
                 return ops[0] + simd_int_types[mnem[-1]] + ' |.=| ' + mnem[1:-1] + '(' + ops[1] + ')'
+        elif mnem == 'pmovmskb':
+            if coc(2, ops, token, errors):
+                return ops[0] + ' |=| ' + 'movemask' + '(' + ops[1] + simd_int_types[mnem[-1]] + ')'
         elif mnem[1:] in simd_simple_int_bitwise_instructions:
             if eoc(2):
                 if mnem == 'pxor' and ops[0] == ops[1]:

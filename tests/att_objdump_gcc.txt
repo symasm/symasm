@@ -1,0 +1,44 @@
+helper_scripts/make_test_objdump_gcc.py
+Errors:
+
+        movq   0x20,%rax
+        movq   $0x0,0x30
+        movdqa 0x315232(%rip),%xmm0        # 71a480 <stderr@@GLIBC_2.2.5+0x3300>
+        sarq   %rsi
+        setne  -0x168(%rbp)
+        movsb  %ds:(%rsi),%es:(%rdi)
+        movq   %fs:0x28,%rax
+        callq  *%rax
+        shll   0x48(%rsp)
+        pmovmskb %xmm0,%esi
+        prefetchnta (%r15)
+        prefetcht0 (%rax)
+        bswap  %eax
+
+        mov    rax,QWORD PTR ds:0x20
+        mov    QWORD PTR ds:0x30,0x0
+        movdqa xmm0,XMMWORD PTR [rip+0x315232]        # 71a480 <stderr@@GLIBC_2.2.5+0x3300>
+        sar    rsi,1
+        setne  BYTE PTR [rbp-0x168]
+        movs   BYTE PTR es:[rdi],BYTE PTR ds:[rsi]
+        mov    rax,QWORD PTR fs:0x28
+        call   rax
+        shl    DWORD PTR [rsp+0x48],1
+        pmovmskb esi,xmm0
+        prefetchnta BYTE PTR [r15]
+        prefetcht0 BYTE PTR [rax]
+        bswap  eax
+
+        rax = 8bytes[20h]
+        8bytes[30h] = 0
+        xmm0l |=a| 16bytes[rip+315232h]
+        rsi >>= 1
+        byte[rbp-168h] = 1 if != else 0
+        byte[es:rdi] = byte[ds:rsi]
+        rax = 8bytes[fs:28h]
+        rax(...)
+        4bytes[rsp+48h] <<= 1
+        esi |=| movemask(xmm0b)
+        prefetchnta byte[r15]
+        prefetcht0 byte[rax]
+        bswap eax
