@@ -1,7 +1,7 @@
 # objdump -d --no-show-raw-insn /usr/bin/x86_64-linux-gnu-gcc-9 -M suffix | cut -d ':' -f 2- > gcc-9.s
 # objdump -d --no-show-raw-insn /usr/bin/x86_64-linux-gnu-gcc-9 -M intel | cut -d ':' -f 2- > gcc-9i.s
 
-import sys, re
+import sys, re, collections
 sys.path.insert(0, '..')
 import symasm
 
@@ -26,12 +26,16 @@ for lang in ['att', 'masm']:
 
     check_errors(errors, src)
 
-    mnemonics = set()
+    mnemonics = collections.defaultdict(int)
     for src_line, line in translation:
         if line == '':
             sline = src[src_line[0].start : src_line[-1].end]
             s = sline.split()
-            if len(s) != 0 and s[0] not in mnemonics:
-                mnemonics.add(s[0])
-                print(sline)
+            if len(s) != 0:# and s[0] not in mnemonics:
+                mnemonics[s[0]] += 1
+    total = 0
+    for mnem, n in mnemonics.items():
+        print(f'x{n}'.rjust(6) + ' ' + mnem)
+        total += n
+    print(f'total: {total}/{len(translation)}')
     print()
