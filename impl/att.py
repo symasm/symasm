@@ -202,7 +202,7 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
         ops.append(r)
 
     if mnem.startswith(('set', 'cmov')):
-        if mnem.startswith('cmov') and mnem[-1] == 'l' and len(mnem) > 5:
+        if mnem.startswith('cmov') and mnem[-1] in 'lqw' and len(mnem) > 5:
             return mnem[:-1]
         return mnem
 
@@ -211,6 +211,9 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
 
     if mnem in ('pmovmskb', 'prefetchnta', 'prefetcht0', 'bswap'):
         return mnem
+
+    if mnem == 'pushq':
+        return mnem[:-1]
 
     if mnem[:-1] in ('sal', 'shl', 'sar', 'shr', 'rol', 'ror') and len(ops) == 1:
         ops.append('1')

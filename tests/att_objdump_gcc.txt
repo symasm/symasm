@@ -1,6 +1,8 @@
 helper_scripts/make_test_objdump_gcc.py
 Errors:
 
+        callq  40387b <calloc@plt+0x7fb>
+        jne    4043c4 <calloc@plt+0x1344>
         movq   0x20,%rax
         movq   $0x0,0x30
         movdqa 0x315232(%rip),%xmm0        # 71a480 <stderr@@GLIBC_2.2.5+0x3300>
@@ -15,6 +17,8 @@ Errors:
         prefetcht0 (%rax)
         bswap  %eax
 
+        call   40387b <calloc@plt+0x7fb>
+        jne    4043c4 <calloc@plt+0x1344>
         mov    rax,QWORD PTR ds:0x20
         mov    QWORD PTR ds:0x30,0x0
         movdqa xmm0,XMMWORD PTR [rip+0x315232]        # 71a480 <stderr@@GLIBC_2.2.5+0x3300>
@@ -29,6 +33,8 @@ Errors:
         prefetcht0 BYTE PTR [rax]
         bswap  eax
 
+        40387b <calloc@plt+0x7fb>(...)
+        != : 4043c4 <calloc@plt+0x1344>
         rax = 8bytes[20h]
         8bytes[30h] = 0
         xmm0l |=a| 16bytes[rip+315232h]
@@ -42,3 +48,34 @@ Errors:
         prefetchnta byte[r15]
         prefetcht0 byte[rax]
         bswap eax
+
+------------------------------------------
+
+att & masm:
+
+        pushq  $0x0
+        cmovaq %rdx,%rax
+        movabsq $0x2000204000,%rdx
+        btq    %rcx,%rax
+        btrq   $0x23,%rax
+        btsq   $0x3f,%rax
+        btcq   $0x3f,%rax
+        cmovnew 0x10(%rax),%bx
+
+        push   0x0
+        cmova  rax,rdx
+        movabs rdx,0x2000204000
+        bt     rax,rcx
+        btr    rax,0x23
+        bts    rax,0x3f
+        btc    rax,0x3f
+        cmovne bx,WORD PTR [rax+0x10]
+
+        push 0
+        rax = rdx if u>
+        rdx = 2000204000h
+        cf = rax.bit(rcx)
+        cf = rax.bit(23h), rax.bit(23h) = 0
+        cf = rax.bit(3fh), rax.bit(3fh) = 1
+        cf = rax.bit(3fh), rax.bit(3fh).flip()
+        bx = 2bytes[rax+10h] if !=

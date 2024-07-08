@@ -194,6 +194,7 @@ instructions_without_operands = {
     'cdq' : 'edx:eax = sx(eax)',
     'cqo' : 'rdx:rax = sx(rax)',
     'retq': 'ret',
+    'leaveq':'leave',
 }
 
 simple_instructions_with_2_operands = {
@@ -393,7 +394,7 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
             if eoc(2):
                 res.append((line, ops[0] + ' ' + simple_instructions_with_2_operands[mnem] + '= ' + ops[1]))
 
-        elif mnem in ('movs', ):
+        elif mnem in ('movs', 'movabs'):
             if eoc(2):
                 res.append((line, ops[0] + ' = ' + ops[1]))
 
@@ -543,6 +544,14 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
         elif mnem in ('rcl', 'rcr'):
             eoc(2)
             res.append((line, 'cf:' + ops[0] + ' (' + ('<<' if mnem == 'rcl' else '>>') + ')= ' + ops[1]))
+
+        elif mnem == 'bt':
+            eoc(2)
+            res.append((line, 'cf = ' + ops[0] + '.bit(' + ops[1] + ')'))
+
+        elif mnem in ('btr', 'bts', 'btc'):
+            eoc(2)
+            res.append((line, f'cf = {ops[0]}.bit({ops[1]}), {ops[0]}.bit({ops[1]})' + {'r':' = 0', 's':' = 1', 'c':'.flip()'}[mnem[2]]))
 
         elif mnem == 'nop':
             eoc_range(0, 1)
