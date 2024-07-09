@@ -56,7 +56,7 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
 
     if mnem in ('callq', 'jmpq'):
         op = source[operands[0][0].start:operands[0][-1].end]
-        if op.startswith('*%'): op = op[2:] # op = op.lstrip(‘*%’)
+        if op.startswith('*%'): op = op[2:] # op = op.ltrim(‘*%’, 1)
         ops.append(op)
         return mnem[:-1]
 
