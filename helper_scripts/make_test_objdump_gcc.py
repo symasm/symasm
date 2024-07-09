@@ -61,7 +61,7 @@ for lang in ['att', 'masm']:
 
     if lang == 'masm':
         total += as_is_total
-        print('Symbolic coverage: %.3f' % ((len(translation) - total) * 100 / len(translation)))
+        print('Symbolic coverage: %.3f%%' % ((len(translation) - total) * 100 / len(translation)))
 
         pprn_total = as_is_mnemonics['push'] + as_is_mnemonics['pop'] + mnemonics['ret'] + as_is_mnemonics['nop']
-        print('Symbolic+4 coverage: %.3f' % ((len(translation) - (total - pprn_total)) * 100 / len(translation)))
+        print('Symbolic+4 coverage: %.3f%%' % ((len(translation) - (total - pprn_total)) * 100 / len(translation)))

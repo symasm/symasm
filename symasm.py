@@ -598,12 +598,26 @@ def translate_to_symasm(lang, tokens, source, errors: List[Error] = None, insert
     empty: List[Tuple[List[Token], str]] = []
     return empty
 
+from impl.man import *
+
 def answer(request):
+    #if extra_info != '':
+    if any_extra_info():
+        return answerer(request)
+
     if request == '':
         return '?'
 
     if request[0] == '?' or request[-1] == '?':
-        pass
+        indent = 1
+        if request[0] == '?':
+            ans = answerer(request[1:])
+            if request[1:].lower() == ans[:len(request)-1].lower():
+                indent = 2
+        else:
+            ans = answerer(request[:-1])
+        ans = re.sub(r'\[\[\[[\s\S]+?]]]', '', ans) # remove comments
+        return ' ' * (indent-1) + ans.replace("\n", "\n" + ' ' * indent)
 
     if request[0] == '!': return 'jn' + request[1] + request[4:] # just for `!o : skip_int_4` [-REMOVE ME ASAP-]
 
@@ -728,7 +742,7 @@ Options:
 
     if args_infile.isatty(): # interactive mode
         while True:
-            print(' ' + answer(input('>')))
+            print(' ' + answer(input('>')).replace('•', '-'))
             print()
         sys.exit(0)
 
