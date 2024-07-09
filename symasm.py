@@ -331,14 +331,19 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
 
         mnem: str = line[0].string.lower()
 
-        if mnem in ('rep', 'repz', 'repnz', 'lock', 'data16'):
+        if mnem in ('rep', 'repz', 'repnz', 'data16'):
             res.append((line, ''))
             continue
+
+        prefix = ''
+        if mnem == 'lock':
+            prefix = mnem + ' '
+            mnem = line[1].string.lower()
 
         operands: List[List[Token]] = []
         last_operand: List[Token] = []
         nesting_level = 0
-        for token in line[1:]:
+        for token in line[1+int(prefix != ''):]:
             if token.string == ',' and nesting_level == 0:
                 operands.append(last_operand)
                 last_operand = []
@@ -556,6 +561,10 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
         elif mnem == 'nop':
             eoc_range(0, 1)
             res.append((line, 'nop ' + ops[0] if len(ops) == 1 else 'nop'))
+
+        elif mnem == 'cmpxchg':
+            eoc(2)
+            res.append((line, prefix + mnem + ' ' + ops[0] + ', ' + ops[1]))
 
         elif mnem[0] == 'f':
             res.append((line, fpu_to_symasm(mnem, ops, line[0], errors)))

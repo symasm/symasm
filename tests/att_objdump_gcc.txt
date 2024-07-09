@@ -61,6 +61,7 @@ att & masm:
         btsq   $0x3f,%rax
         btcq   $0x3f,%rax
         cmovnew 0x10(%rax),%bx
+        lock cmpxchgq %rbx,(%rdx)
 
         push   0x0
         cmova  rax,rdx
@@ -70,6 +71,7 @@ att & masm:
         bts    rax,0x3f
         btc    rax,0x3f
         cmovne bx,WORD PTR [rax+0x10]
+        lock cmpxchg QWORD PTR [rdx],rbx
 
         push 0
         rax = rdx if u>
@@ -79,3 +81,4 @@ att & masm:
         cf = rax.bit(3fh), rax.bit(3fh) = 1
         cf = rax.bit(3fh), rax.bit(3fh).flip()
         bx = 2bytes[rax+10h] if !=
+        lock cmpxchg 8bytes[rdx], rbx
