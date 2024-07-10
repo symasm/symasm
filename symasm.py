@@ -610,13 +610,14 @@ def answer(request):
 
     if request[0] == '?' or request[-1] == '?':
         indent = 1
+        ans: str
         if request[0] == '?':
             ans = answerer(request[1:])
             if request[1:].lower() == ans[:len(request)-1].lower():
                 indent = 2
         else:
             ans = answerer(request[:-1])
-        ans = re.sub(r'\[\[\[[\s\S]+?]]]', '', ans) # remove comments
+        ans = re.sub(r'\[\[\[[\s\S]+?\]\]\]', '', ans) # remove comments
         return ' ' * (indent-1) + ans.replace("\n", "\n" + ' ' * indent)
 
     if request[0] == '!': return 'jn' + request[1] + request[4:] # just for `!o : skip_int_4` [-REMOVE ME ASAP-]
