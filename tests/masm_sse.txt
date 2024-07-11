@@ -128,3 +128,9 @@ PEXTRQ rax, xmm1, 1            ; rax = xmm1l[1]
 PEXTRB r8d, xmm1, 1            ; r8i = xmm1b[1]
 PEXTRW r8d, xmm1, 1            ; r8i = xmm1w[1]
 PEXTRB BYTE PTR [rax], xmm1, 1 ; byte[rax] = xmm1b[1]
+
+------------------------------------------
+
+andpd  xmm0,XMMWORD PTR [rip+0x18ddba] ; xmm0d |&=| 16bytes[rip+18ddbah]
+andnpd xmm6,xmm4                       ; xmm6d |=| ~xmm6 & xmm4
+orpd   xmm0,xmm6                       ; xmm0d ||=| xmm6

@@ -5,6 +5,12 @@ simd_simple_float_instructions = {
     'sub' : '-',
     'mul' : '*',
     'div' : '/',
+    'and' : '&',
+    'or'  : '|',
+}
+
+simd_complex_float_instructions = {
+    'andn' : '~<op1> & <op2>',
 }
 
 simd_simple_int_instructions = {
@@ -219,6 +225,10 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
             if eoc(2):
                 p = '|' * (mnem[-2] == 'p')
                 return ops[0] + mnem[-1] + ' ' + p + simd_simple_float_instructions[mnem[:-2]] + '=' + p + ' ' + ops[1]
+        elif mnem[:-2] in simd_complex_float_instructions:
+            if eoc(2):
+                p = '|' * (mnem[-2] == 'p')
+                return ops[0] + mnem[-1] + ' ' + p + '=' + p + ' ' + simd_complex_float_instructions[mnem[:-2]].replace('<op1>', ops[0]).replace('<op2>', ops[1])
         elif mnem in simd_simple_register_instructions:
             if eoc(2):
                 if not ops[1].lower().startswith('xmm'):
@@ -375,6 +385,10 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
             if eoc(3):
                 p = '|' * (mnem[-2] == 'p')
                 return ops[0] + mnem[-1] + ' v' + p + '=' + p + ' ' + ops[1] + ' ' + simd_simple_float_instructions[mnem[1:-2]] + ' ' + ops[2]
+        elif mnem[1:-2] in simd_complex_float_instructions:
+            if eoc(3):
+                p = '|' * (mnem[-2] == 'p')
+                return ops[0] + mnem[-1] + ' v' + p + '=' + p + ' ' + simd_complex_float_instructions[mnem[1:-2]].replace('<op1>', ops[1]).replace('<op2>', ops[2])
         elif mnem[1:-2] in simd_float_intrinsics_with_1_operand:
             ty = mnem[-1]
             if mnem[-2] == 'p':

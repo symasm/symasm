@@ -1,5 +1,7 @@
 # objdump -d --no-show-raw-insn /usr/bin/x86_64-linux-gnu-g++-9 -M suffix | cut -d ':' -f 2- > g++-9.s
 # objdump -d --no-show-raw-insn /usr/bin/x86_64-linux-gnu-g++-9 -M intel | cut -d ':' -f 2- > g++-9i.s
+# sudo apt-get install libgmp-dev & objdump -d --no-show-raw-insn /usr/lib/x86_64-linux-gnu/libgmp.so.10.3.2 -M intel | cut -d ':' -f 2- > libgmp.s
+# sudo apt-get install gsl-bin    & objdump -d --no-show-raw-insn /usr/lib/x86_64-linux-gnu/libgsl.so.23.0.0 -M intel | cut -d ':' -f 2- > libgsl.s
 
 import sys, re
 sys.path.insert(0, '..')

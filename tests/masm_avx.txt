@@ -134,3 +134,9 @@ VPEXTRQ rax, xmm1, 1                  ; rax v= xmm1l[1]
 VPEXTRB r8d, xmm1, 1                  ; r8i v= xmm1b[1]
 VPEXTRW r8d, xmm1, 1                  ; r8i v= xmm1w[1]
 VPEXTRB BYTE PTR [rax], xmm1, 1       ; byte[rax] v= xmm1b[1]
+
+------------------------------------------
+
+vandpd  xmm1,xmm0,XMMWORD PTR [rip+0x18ddba] ; xmm1d v|=| xmm0 & 16bytes[rip+18ddbah]
+vandnpd xmm1,xmm6,xmm4                       ; xmm1d v|=| ~xmm6 & xmm4
+vorpd   xmm1,xmm0,xmm6                       ; xmm1d v|=| xmm0 | xmm6
