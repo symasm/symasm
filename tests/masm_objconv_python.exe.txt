@@ -1,0 +1,4 @@
+; objconv.exe -fmasm ...\python-3.6.8-embed-win32\python.exe
+?_001   LABEL NEAR
+        dw      154 dup (?)
+?_185   dd      ?

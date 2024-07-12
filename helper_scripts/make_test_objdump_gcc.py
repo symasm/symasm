@@ -10,12 +10,14 @@ import symasm
 
 for lang in ['att', 'masm'][1:]:
     asm_fname = 'g++-9' + 'i'*(lang == 'masm') + '.s'
-    asm_fname = 'python3.asm'
+    asm_fname = 'python.asm'
     print(lang + ' (' + asm_fname + '):')
 
     src = open(asm_fname).read()
     errors = []
     translation = symasm.translate_to_symasm(lang, symasm.tokenize(src, errors), src, errors)
+
+    errors = list(filter(lambda e: not (src[e.pos:e.end] == 'movsd' and src[e.end+53:e.end+53+6] == " _ A5\n"), errors)) # for strange `objconv` output [`movsd` instruction without operands]
 
     def check_errors(errors, test):
         if len(errors) > 0:
@@ -41,8 +43,8 @@ for lang in ['att', 'masm'][1:]:
             s = sline.split()
             if len(s) != 0:# and s[0] not in mnemonics:
                 mnem = s[0]
-                if len(src_line) == 3 and src_line[1].string == 'label':
-                    mnem = 'label'
+                if len(src_line) == 3 and src_line[1].string in ('label', 'LABEL', 'db', 'dw', 'dd'):
+                    mnem = src_line[1].string
                 if mnem not in mnemonics:
                     mnemonics[mnem] = 1
                     instructions.append((mnem, sline))

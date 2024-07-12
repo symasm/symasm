@@ -61,7 +61,7 @@ def tokenize(source, errors: list):
             elif ch in inner_operators:
                 category = Token.Category.INNER_OPERATOR
 
-            elif ch.isalpha() or ch in '_.$%': # this is NAME/IDENTIFIER
+            elif ch.isalpha() or ch in '_.$%' or (ch == '?' and i < len(source)-2 and source[i] == '_' and source[i+1].isdigit()): # this is NAME/IDENTIFIER
                 while i < len(source):
                     ch = source[i]
                     if not (ch.isalpha() or ch in '_.@' or '0' <= ch <= '9'):
@@ -111,7 +111,7 @@ def tokenize(source, errors: list):
                     i += 1
                 category = Token.Category.STRING_LITERAL
 
-            elif ch in ':,[]()':
+            elif ch in ':,[]()?':
                 category = Token.Category.DELIMITER
 
             elif ch == '<' and (source[i] == '_' or source[i].isalpha()) and source[i-2] == ' ':
