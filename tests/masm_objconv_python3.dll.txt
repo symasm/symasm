@@ -1,0 +1,3 @@
+; objconv.exe -fmasm ...\python-3.6.8-embed-win32\python3.dll
+_text   SEGMENT BYTE PUBLIC 'CODE'
+Debug_table label dword

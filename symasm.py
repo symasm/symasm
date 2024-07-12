@@ -100,6 +100,17 @@ def tokenize(source, errors: list):
 
                 continue
 
+            elif ch == "'":
+                while True:
+                    if i == len(source):
+                        errors.append(Error('unclosed string literal', lexem_start, i))
+                        break
+                    if source[i] == "'":
+                        i += 1
+                        break
+                    i += 1
+                category = Token.Category.STRING_LITERAL
+
             elif ch in ':,[]()':
                 category = Token.Category.DELIMITER
 
@@ -326,6 +337,10 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
 
         if (line[-1].string == ':' or # this is a label
              line[0].string[0] == '.'): # or directive
+            res.append((line, ''))
+            continue
+
+        if len(line) == 3 and line[1].string == 'label':
             res.append((line, ''))
             continue
 

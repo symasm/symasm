@@ -9,8 +9,9 @@ class Token:
         CONDITIONAL_OPERATOR = 3
         DELIMITER = 4
         NUMERIC_LITERAL = 5
-        NEWLINE = 6
-        COMMENT = 7
+        STRING_LITERAL = 6
+        NEWLINE = 7
+        COMMENT = 8
 
     start: int
     end: int
