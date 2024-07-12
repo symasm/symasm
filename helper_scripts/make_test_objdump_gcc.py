@@ -7,15 +7,16 @@
 import sys, re
 sys.path.insert(0, '..')
 import symasm
+from typing import List, Dict, Tuple
 
 for lang in ['att', 'masm'][1:]:
     asm_fname = 'g++-9' + 'i'*(lang == 'masm') + '.s'
-    asm_fname = 'python311.1.asm'
+    asm_fname = 'python311.asm'
     print(lang + ' (' + asm_fname + '):')
 
     src = open(asm_fname).read()
     src = re.sub(r'\n\?_\d{5}:', '\n', src) # remove inline labels (for `objconv` output)
-    errors = []
+    errors: List[symasm.Error] = []
     translation = symasm.translate_to_symasm(lang, symasm.tokenize(src, errors), src, errors)
 
     errors = list(filter(lambda e: not (src[e.pos:e.end] == 'movsd' and src[e.end+53:e.end+53+6] == " _ A5\n"), errors)) # for strange `objconv` output [`movsd` instruction without operands]
@@ -34,22 +35,26 @@ for lang in ['att', 'masm'][1:]:
 
     check_errors(errors, src)
 
-    mnemonics = {}
-    instructions = []
-    as_is_mnemonics = {}
-    as_is_instructions = []
+    mnemonics: Dict[str, int] = {}
+    instructions: List[Tuple[str, str]] = []
+    as_is_mnemonics: Dict[str, int] = {}
+    as_is_instructions: List[str] = []
     for src_line, line in translation:
         if line == '':
             sline = src[src_line[0].start : src_line[-1].end]
             s = sline.split()
             if len(s) != 0:# and s[0] not in mnemonics:
                 mnem = s[0]
-                if len(src_line) == 3 and src_line[1].string in ('label', 'LABEL', 'db', 'dw', 'dd'):
+                if len(src_line) == 3 and src_line[1].string in ('label', 'LABEL', 'PROC', 'db', 'dw', 'dd', 'dq'):
                     mnem = src_line[1].string
                 elif src_line[-1].string == ':':
                     mnem = ':'
                 elif len(src_line) == 2 and src_line[0].string == 'int' and src_line[1].string == '3':
                     mnem = 'int_3'
+                elif len(src_line) > 3 and src_line[1].string in ('db', 'dw', 'dd') and src_line[0].string.startswith('?_'):
+                    mnem = src_line[1].string
+                elif len(src_line) == 2 and src_line[1].string in ('ENDP', 'PROC'):
+                    mnem = src_line[1].string
                 if mnem not in mnemonics:
                     mnemonics[mnem] = 1
                     instructions.append((mnem, sline))
@@ -68,7 +73,7 @@ for lang in ['att', 'masm'][1:]:
     total = 0
     for mnem, sline in instructions:
         s = f'x{mnemonics[mnem]}'.rjust(6) + ' ' + sline
-        if mnem not in ('public', 'extern', 'ALIGN', 'label', 'LABEL', 'db', 'dw', 'dd', ':', 'int_3'):
+        if mnem not in ('public', 'extern', 'ALIGN', 'label', 'LABEL', 'PROC', 'ENDP', 'db', 'dw', 'dd', 'dq', ':', 'int_3'):
             print(s)
             total += mnemonics[mnem]
         else:
@@ -88,7 +93,7 @@ for lang in ['att', 'masm'][1:]:
 
     if lang == 'masm':
         total += as_is_total
-        print('Symbolic coverage: %.3f%%' % ((total_instructions - total) * 100 / total_instructions))
+        print('Symbolic coverage: %.3f%%' % ((total_instructions - total) * 100.0 / total_instructions))
 
         pprn_total = as_is_mnemonics['push'] + as_is_mnemonics['pop'] + mnemonics['ret'] + as_is_mnemonics['nop']
-        print('Symbolic+4 coverage: %.3f%%' % ((total_instructions - (total - pprn_total)) * 100 / total_instructions))
+        print('Symbolic+4 coverage: %.3f%%' % ((total_instructions - (total - pprn_total)) * 100.0 / total_instructions))
