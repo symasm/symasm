@@ -346,7 +346,7 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
 
         mnem: str = line[0].string.lower()
 
-        if mnem in ('rep', 'repz', 'repnz', 'data16'):
+        if mnem in ('rep', 'repz', 'repnz', 'data16', 'extern'):
             res.append((line, ''))
             continue
 

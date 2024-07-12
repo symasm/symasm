@@ -10,10 +10,11 @@ import symasm
 
 for lang in ['att', 'masm'][1:]:
     asm_fname = 'g++-9' + 'i'*(lang == 'masm') + '.s'
-    asm_fname = 'python.asm'
+    asm_fname = 'python311.1.asm'
     print(lang + ' (' + asm_fname + '):')
 
     src = open(asm_fname).read()
+    src = re.sub(r'\n\?_\d{5}:', '\n', src) # remove inline labels (for `objconv` output)
     errors = []
     translation = symasm.translate_to_symasm(lang, symasm.tokenize(src, errors), src, errors)
 
@@ -45,6 +46,10 @@ for lang in ['att', 'masm'][1:]:
                 mnem = s[0]
                 if len(src_line) == 3 and src_line[1].string in ('label', 'LABEL', 'db', 'dw', 'dd'):
                     mnem = src_line[1].string
+                elif src_line[-1].string == ':':
+                    mnem = ':'
+                elif len(src_line) == 2 and src_line[0].string == 'int' and src_line[1].string == '3':
+                    mnem = 'int_3'
                 if mnem not in mnemonics:
                     mnemonics[mnem] = 1
                     instructions.append((mnem, sline))
@@ -63,7 +68,7 @@ for lang in ['att', 'masm'][1:]:
     total = 0
     for mnem, sline in instructions:
         s = f'x{mnemonics[mnem]}'.rjust(6) + ' ' + sline
-        if mnem not in ('public', 'label', 'db', 'dd'):
+        if mnem not in ('public', 'extern', 'ALIGN', 'label', 'LABEL', 'db', 'dw', 'dd', ':', 'int_3'):
             print(s)
             total += mnemonics[mnem]
         else:
