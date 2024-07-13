@@ -58,10 +58,10 @@ simd_move_instructions = {
 }
 
 sse_move_instructions = {
-    'movlps' : 'xmm0s[0:2] |=| <src>',
-    'movhps' : 'xmm0s[2:4] |=| <src>',
-    'movlpd' : 'xmm0d[0] = <src>',
-    'movhpd' : 'xmm0d[1] = <src>',
+    'movlps' : ('s[0:2]', '|=|'),
+    'movhps' : ('s[2:4]', '|=|'),
+    'movlpd' : ('d[0]', '='),
+    'movhpd' : ('d[1]', '='),
 }
 
 sse_cmp_float = {
@@ -205,8 +205,12 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                 return ops[0] + ' ' + op + ' ' + ops[1] + ty
 
     elif mnem in sse_move_instructions:
-        if eoc(2):
-            return sse_move_instructions[mnem].replace('xmm0', ops[0]).replace('<src>', ops[1])
+        if coc(2, ops, token, errors):
+            regc, op = sse_move_instructions[mnem]
+            if is_simd_reg(ops[0]):
+                return ops[0] + regc + ' ' + op + ' ' + ops[1]
+            else:
+                return ops[0] + ' ' + op + ' ' + ops[1] + regc
 
     elif mnem in ('movq', 'movd'):
         return simd_movq_movd(mnem, ops, token, errors)

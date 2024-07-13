@@ -134,3 +134,8 @@ PEXTRB BYTE PTR [rax], xmm1, 1 ; byte[rax] = xmm1b[1]
 andpd  xmm0,XMMWORD PTR [rip+0x18ddba] ; xmm0d |&=| 16bytes[rip+18ddbah]
 andnpd xmm6,xmm4                       ; xmm6d |=| ~xmm6 & xmm4
 orpd   xmm0,xmm6                       ; xmm0d ||=| xmm6
+
+------------------------------------------
+
+; python311.dll (32 bit)
+movlpd  qword ptr [ebp-14H], xmm0 ; 8bytes[ebp-14H] = xmm0d[0]
