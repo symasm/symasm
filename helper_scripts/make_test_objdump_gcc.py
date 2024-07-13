@@ -60,7 +60,7 @@ for lang in ['att', 'masm'][1:]:
                     instructions.append((mnem, sline))
                 else:
                     mnemonics[mnem] += 1
-        elif line.startswith(src_line[0].string):
+        elif line.startswith(src_line[0].string) and src_line[0].string != 'fst':
             assert(line.startswith(src_line[0].string + ' ') or line == src_line[0].string)
             if src_line[0].string not in as_is_mnemonics:
                 as_is_mnemonics[src_line[0].string] = 1

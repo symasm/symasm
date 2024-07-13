@@ -340,7 +340,7 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
             res.append((line, ''))
             continue
 
-        if len(line) == 3 and line[1].string == 'label':
+        if len(line) == 3 and line[1].string.lower() == 'label':
             res.append((line, ''))
             continue
 
