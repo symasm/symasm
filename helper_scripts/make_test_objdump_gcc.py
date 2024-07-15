@@ -1,5 +1,6 @@
 # objdump -d --no-show-raw-insn /usr/bin/x86_64-linux-gnu-g++-9 -M suffix | cut -d ':' -f 2- > g++-9.s
 # objdump -d --no-show-raw-insn /usr/bin/x86_64-linux-gnu-g++-9 -M intel | cut -d ':' -f 2- > g++-9i.s
+# objdump -d --no-show-raw-insn /usr/bin/python3.6 -M intel | cut -d ':' -f 2- > python3i.s
 # ldconfig -p | grep libgmp
 # sudo apt-get install libgmp-dev & objdump -d --no-show-raw-insn /usr/lib/x86_64-linux-gnu/libgmp.so.10.3.2 -M intel | cut -d ':' -f 2- > libgmp.s
 # sudo apt-get install gsl-bin    & objdump -d --no-show-raw-insn /usr/lib/x86_64-linux-gnu/libgsl.so.23.0.0 -M intel | cut -d ':' -f 2- > libgsl.s
@@ -11,7 +12,7 @@ from typing import List, Dict, Tuple
 
 for lang in ['att', 'masm'][1:]:
     asm_fname = 'g++-9' + 'i'*(lang == 'masm') + '.s'
-    asm_fname = 'python311.asm'
+    asm_fname = 'python3i.s'
     print(lang + ' (' + asm_fname + '):')
 
     src = open(asm_fname).read()

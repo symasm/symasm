@@ -44,7 +44,7 @@ Errors:
         rax = 8bytes[fs:28h]
         rax(...)
         4bytes[rsp+48h] <<= 1
-        esi |=| movemask(xmm0b)
+        esi |=| mask(xmm0b)
         prefetchnta byte[r15]
         prefetcht0 byte[rax]
         bswap eax

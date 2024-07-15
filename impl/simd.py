@@ -119,6 +119,16 @@ simd_special_intrinsics_with_2_operands = {
     'unpcklpd'  : ('unpacklo', 'd'),
     'unpckhps'  : ('unpackhi', 's'),
     'unpckhpd'  : ('unpackhi', 'd'),
+
+    'packuswb'  : ('packusw',  'b'),
+    'packusdw'  : ('packusd',  'w'),
+    'packsswb'  : ('packsw',   'b'),
+    'packssdw'  : ('packsd',   'w'),
+
+    'pslldq'    : ('bshl',     ''),
+    'psrldq'    : ('bshr',     ''),
+    'pmuldq'    : ('muli',     'l'),
+    'pmuludq'   : ('mului',    'ul'),
 }
 
 def is_simd_reg(operand):
@@ -215,6 +225,10 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
     elif mnem in ('movq', 'movd'):
         return simd_movq_movd(mnem, ops, token, errors)
 
+    elif mnem in ('movmskps', 'movmskpd'):
+        if coc(2, ops, token, errors):
+            return ops[0] + ' |=| ' + 'mask' + '(' + ops[1] + mnem[-1] + ')'
+
     elif mnem in simd_special_intrinsics_with_2_operands and not mnem in simd_simple_register_instructions:
         if eoc(2):
             iname, ty = simd_special_intrinsics_with_2_operands[mnem]
@@ -280,7 +294,7 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                 return ops[0] + simd_int_types[mnem[-1]] + ' |.=| ' + mnem[1:-1] + '(' + ops[1] + ')'
         elif mnem == 'pmovmskb':
             if coc(2, ops, token, errors):
-                return ops[0] + ' |=| ' + 'movemask' + '(' + ops[1] + simd_int_types[mnem[-1]] + ')'
+                return ops[0] + ' |=| ' + 'mask' + '(' + ops[1] + simd_int_types[mnem[-1]] + ')'
         elif mnem[1:] in simd_simple_int_bitwise_instructions:
             if eoc(2):
                 if mnem == 'pxor' and ops[0] == ops[1]:
