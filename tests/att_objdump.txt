@@ -330,3 +330,13 @@ void sum()
         32bytes[rip+0] v|=u| ymm0s
         vzeroupper
         ret
+
+------------------------------------------
+
+// objdump -d --no-show-raw-insn /usr/lib/x86_64-linux-gnu/libgmp.so.10.3.2 -M suffix | cut -d ':' -f 2- > libgmp.s
+
+        shrdq  %cl,%rdx,%rax
+
+        shrd   rax,rdx,cl
+
+        _:rax = rdx:rax >> cl

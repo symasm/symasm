@@ -99,7 +99,9 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
                         reg_size = sz
                     else:
                         if reg_size != sz and not mnem.startswith(('movs', 'movz')) and not mnem[:-1] in ('sal', 'shl', 'sar', 'shr', 'rol', 'ror'):
-                            if errors is not None:
+                            if mnem[:-1] in ('shld', 'shrd') and r == 'cl':
+                                pass
+                            elif errors is not None:
                                 errors.append(error_at_token(f'register size mismatch ({sz}, expected {reg_size})', toks[0]))
 # (
         elif toks[-1].string == ')': # indirect
