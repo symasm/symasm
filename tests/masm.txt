@@ -112,3 +112,8 @@ shld    edx, eax, 16 ; edx:_ = edx:eax << 16
 shl     eax, 16      ; eax <<= 16
 shrd    edx, eax, 8  ; _:edx = eax:edx >> 8
 shr     eax, 8       ; eax u>>= 8
+
+------------------------------------------
+
+; /usr/lib/x86_64-linux-gnu/libgmp.so.10.3.2
+clc ; cf = 0

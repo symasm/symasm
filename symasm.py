@@ -206,6 +206,11 @@ instructions_without_operands = {
     'cqo' : 'rdx:rax = sx(rax)',
     'retq': 'ret',
     'leaveq':'leave',
+    'clc' : 'cf = 0',
+    'stc' : 'cf = 1',
+    'cmc' : 'cf = ~cf',
+    'cld' : 'df = 0',
+    'std' : 'df = 1',
 }
 
 simple_instructions_with_2_operands = {
