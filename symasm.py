@@ -565,6 +565,14 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
             eoc(2)
             res.append((line, 'cf:' + ops[0] + ' (' + ('<<' if mnem == 'rcl' else '>>') + ')= ' + ops[1]))
 
+        elif mnem == 'shld':
+            eoc(3)
+            res.append((line, f'{ops[0]}:_ = {ops[0]}:{ops[1]} << {ops[2]}'))
+
+        elif mnem == 'shrd':
+            eoc(3)
+            res.append((line, f'_:{ops[0]} = {ops[1]}:{ops[0]} >> {ops[2]}'))
+
         elif mnem == 'bt':
             eoc(2)
             res.append((line, 'cf = ' + ops[0] + '.bit(' + ops[1] + ')'))

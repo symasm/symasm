@@ -104,3 +104,11 @@ movzx  rax, WORD PTR [short_num] ; rax = zx(2bytes[short_num])
 
 ; Intel\MKL\10.2.6.037\ia32\bin\mkl_core.dll
 fabs    LABEL NEAR
+
+------------------------------------------
+
+; python-3.11.3-embed-win32.zip\python311.dll
+shld    edx, eax, 16 ; edx:_ = edx:eax << 16
+shl     eax, 16      ; eax <<= 16
+shrd    edx, eax, 8  ; _:edx = eax:edx >> 8
+shr     eax, 8       ; eax u>>= 8
