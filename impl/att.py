@@ -43,8 +43,8 @@ att_instructions_without_operands = {
 }
 
 def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List[Error] = None):
-    if mnem == 'call':
-        ops.append(operands[0][0].string)
+    if mnem in ('call', 'jmp'):
+        ops.append(source[operands[0][0].start:operands[0][-1].end])
         return mnem
 
     if mnem == 'nopw':

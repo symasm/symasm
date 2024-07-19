@@ -1,0 +1,112 @@
+// x86-64 clang (trunk) [https://godbolt.org]
+#include <math.h>
+float f(float f, int i)
+{
+    return i > 0 ? sinf(f) : cosf(f);
+}
+
+        testl   %edi, %edi
+        jle     cosf@PLT                        # TAILCALL
+        jmp     sinf@PLT                        # TAILCALL
+
+        test    edi, edi
+        jle     cosf@PLT                        # TAILCALL
+        jmp     sinf@PLT                        # TAILCALL
+
+        edi <= 0 : cosf@PLT
+        :sinf@PLT
+
+------------------------------------------
+
+#include <math.h>
+float f(float f, int i)
+{
+    return i >= 0 ? sinf(f) : cosf(f);
+}
+
+        testl   %edi, %edi
+        js      cosf@PLT                        # TAILCALL
+        jmp     sinf@PLT                        # TAILCALL
+
+        test    edi, edi
+        js      cosf@PLT                        # TAILCALL
+        jmp     sinf@PLT                        # TAILCALL
+
+        edi < 0 : cosf@PLT
+        :sinf@PLT
+
+------------------------------------------
+
+#include <math.h>
+float f(float f, int i)
+{
+    return i < 0 ? sinf(f) : cosf(f);
+}
+
+        testl   %edi, %edi
+        jns     cosf@PLT                        # TAILCALL
+        jmp     sinf@PLT                        # TAILCALL
+
+        test    edi, edi
+        jns     cosf@PLT                        # TAILCALL
+        jmp     sinf@PLT                        # TAILCALL
+
+        edi !< 0 : cosf@PLT
+        :sinf@PLT
+
+------------------------------------------
+
+#include <math.h>
+float f(float f, int i)
+{
+    return i <= 0 ? sinf(f) : cosf(f);
+}
+
+        testl   %edi, %edi
+        jg      cosf@PLT                        # TAILCALL
+        jmp     sinf@PLT                        # TAILCALL
+
+        test    edi, edi
+        jg      cosf@PLT                        # TAILCALL
+        jmp     sinf@PLT                        # TAILCALL
+
+        edi > 0 : cosf@PLT
+        :sinf@PLT
+
+------------------------------------------
+
+#include <math.h>
+float f(float f, int i)
+{
+    return i == 0 ? sinf(f) : cosf(f);
+}
+
+        testl   %edi, %edi
+        jne     cosf@PLT                        # TAILCALL
+        jmp     sinf@PLT                        # TAILCALL
+
+        test    edi, edi
+        jne     cosf@PLT                        # TAILCALL
+        jmp     sinf@PLT                        # TAILCALL
+
+        edi != 0 : cosf@PLT
+        :sinf@PLT
+
+------------------------------------------
+
+#include <math.h>
+float f(float f, int i)
+{
+    return i != 0 ? sinf(f) : cosf(f);
+}
+
+        testl   %edi, %edi
+        je      cosf@PLT                        # TAILCALL
+        jmp     sinf@PLT                        # TAILCALL
+
+        test    edi, edi
+        je      cosf@PLT                        # TAILCALL
+        jmp     sinf@PLT                        # TAILCALL
+
+        edi == 0 : cosf@PLT
+        :sinf@PLT

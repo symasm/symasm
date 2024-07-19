@@ -519,8 +519,12 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
 
             if ops[0] == ops[1] and len(next_line) > 0:
                 next_mnem = next_line[0].string.lower()
-                if next_mnem.startswith('j') and next_mnem[1:] in ('z', 'nz', 'e', 'ne'):
-                    res.append((line, ops[0] + (' !=' if next_mnem[1] == 'n' else ' ==') + ' 0 : ' + op_str(next_line[1:])))
+                if next_mnem.startswith('j') and next_mnem[1:] in ('z', 'nz', 'e', 'ne', 'le', 'g', 's', 'ns'):
+                    if next_mnem[1:] in ('z', 'nz'):
+                        next_mnem = next_mnem[:-1] + 'e'
+                    elif next_mnem[-1] == 's':
+                        next_mnem = next_mnem[:-1] + 'l'
+                    res.append((line, ops[0] + ' ' + cc_to_sym[next_mnem[1:]] + ' 0 : ' + op_str(next_line[1:])))
                     res.append((next_line, '-'))
                     next_line = lines.next_line()
                     continue

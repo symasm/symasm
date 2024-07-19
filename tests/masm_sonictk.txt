@@ -62,7 +62,8 @@ $LN21:
     xor r9d, r9d                           ; r9i = 0
     vxorpd  xmm8, xmm8, xmm8               ; xmm8d v|=| 0
     test    r8d, r8d                       ; r8i <&> r8i
-    jle $LN13@correlatio                   ; <= : $LN13@correlatio
+    test    r8d, r8d                       ; r8i <= 0 : $LN13@correlatio
+    jle $LN13@correlatio                   ; -
     cmp r8d, 8                             ; r8i u< 8 : $LN9@correlatio
     jb  $LN9@correlatio                    ; -
     and eax, -2147483641                   ; eax &= -2147483641

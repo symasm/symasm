@@ -175,8 +175,7 @@ double correlation_ref(const double x[], const double y[], int n)
         .cfi_endproc
 
         .cfi_startproc
-        edx <&> edx
-        <= : .L5
+        edx <= 0 : .L5
         xmm7 |=| 0
         r8i = &[rdx-1]
         eax = 0
@@ -203,7 +202,6 @@ double correlation_ref(const double x[], const double y[], int n)
         xmm3d += xmm0
         xmm6d += xmm8
         r8 != rcx : .L3
-        -
         xmm1d |=a| xmm5
         xmm1d *= xmm4
         xmm5d *= xmm5
@@ -588,11 +586,9 @@ double correlation_ref(const double x[], const double y[], int n)
         .cfi_endproc
 
         .cfi_startproc
-        edx <&> edx
-        <= : .L7
+        edx <= 0 : .L7
         eax = &[rdx-1]
         eax u<= 2 : .L8
-        -
         ecx = edx
         xmm7d v|=| 0
         eax = 0
@@ -648,7 +644,6 @@ double correlation_ref(const double x[], const double y[], int n)
         xmm0d v|=| unpackhi(xmm0, xmm0)
         xmm8d v= xmm2 + xmm0
         rcx != rax : .L4
-        -
         eax = edx
         eax &= -4
         dl <&> 3
@@ -665,7 +660,6 @@ double correlation_ref(const double x[], const double y[], int n)
         xmm8d v= xmm2 * xmm0 + xmm8
         xmm1d v= xmm1 + xmm0
         edx <= ecx : .L5
-        -
         rcx = sx(ecx)
         eax += 2
         xmm2d v= 8bytes[rdi+rcx*8]
@@ -676,7 +670,6 @@ double correlation_ref(const double x[], const double y[], int n)
         xmm8d v= xmm2 * xmm0 + xmm8
         xmm1d v= xmm1 + xmm0
         edx <= eax : .L5
-        -
         rax = sx(eax)
         xmm0d v= 8bytes[rdi+rax*8]
         xmm2d v= 8bytes[rsi+rax*8]
