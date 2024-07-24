@@ -61,7 +61,7 @@ def tokenize(source, errors: list):
             elif ch in inner_operators:
                 category = Token.Category.INNER_OPERATOR
 
-            elif ch.isalpha() or ch in '_.$%' or (ch == '?' and i < len(source)-2 and source[i] == '_' and source[i+1].isdigit()): # this is NAME/IDENTIFIER
+            elif ch.isalpha() or ch in '_.@$%' or (ch == '?' and i < len(source)-2 and source[i] == '_' and source[i+1].isdigit()): # this is NAME/IDENTIFIER
                 while i < len(source):
                     ch = source[i]
                     if not (ch.isalpha() or ch in '_.@' or '0' <= ch <= '9'):
@@ -277,7 +277,7 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
                     i += 2
                 offset = ''
                 if toks[i].string != '[': # ]
-                    r += '['
+                    r += '[' # ]
                     if toks[i].string.isdigit():
                         offset = '+' + toks[i].string
                     elif toks[i].string == '-':
@@ -291,6 +291,9 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
                     i += 2
                     if toks[i].string == '0' and toks[i+1].string == '+':
                         i += 2
+                elif toks[i+1].string == '0' and toks[i+2].string == '+':
+                    r += '['
+                    i += 3
                 writepos = toks[i].start
                 while i < len(toks):
                     if toks[i].string in ('+', '-') and toks[i+1].category == Token.Category.NUMERIC_LITERAL:

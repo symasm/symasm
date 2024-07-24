@@ -129,6 +129,8 @@ simd_special_intrinsics_with_2_operands = {
     'psrldq'    : ('bshr',     ''),
     'pmuldq'    : ('muli',     'l'),
     'pmuludq'   : ('mului',    'ul'),
+
+    'pshufb'    : ('shuffle',  'b'),
 }
 
 def is_simd_reg(operand):
@@ -185,6 +187,9 @@ def simd_cvt(mnem: str, op1, op2, a = ''):
 
     return op1 + ' ' + v + p + '=' + p + ' ' + op2 + end
 
+def is_simd_sxzx(mnem):
+    return mnem[:-2] in ('pmovsx', 'pmovzx') and mnem[-2:] in ('bw', 'bd', 'bq', 'wd', 'wq', 'dq')
+
 def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
     if len(mnem) < 3:
         return ''
@@ -238,6 +243,47 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
         if coc(2, ops, token, errors):
             return simd_cvt(mnem, ops[0], ops[1])
 
+    elif is_simd_sxzx(mnem):
+        if eoc(2):
+            return ops[0] + simd_int_types[mnem[-1]] + ' |=| ' + mnem[4] + 'x(' + simd_reg_mem(ops[1], simd_int_types[mnem[-2]]) + ')'
+
+    elif mnem[0] == 'p':
+        if mnem[1:-1] in simd_simple_int_instructions and mnem[-1] in simd_int_types:
+            if eoc(2):
+                return ops[0] + simd_int_types[mnem[-1]] + ' |' + simd_simple_int_instructions[mnem[1:-1]] + '=| ' + ops[1]
+        elif mnem[1:-1] in simd_int_intrinsics_with_2_operands and mnem[-1] in simd_int_types:
+            if eoc(2):
+                return ops[0] + simd_int_types[mnem[-1]] + ' |.=| ' + mnem[1:-1] + '(' + ops[1] + ')'
+        elif mnem == 'pmovmskb':
+            if coc(2, ops, token, errors):
+                return ops[0] + ' |=| ' + 'mask' + '(' + ops[1] + simd_int_types[mnem[-1]] + ')'
+        elif mnem[1:] in simd_simple_int_bitwise_instructions:
+            if eoc(2):
+                if mnem == 'pxor' and ops[0] == ops[1]:
+                    return ops[0] + ' |=| 0'
+                return ops[0] + ' |' + simd_simple_int_bitwise_instructions[mnem[1:]] + '=| ' + ops[1]
+        elif mnem == 'pandn':
+            if eoc(2):
+                return ops[0] + ' |=| ~' + ops[0] + ' & ' + ops[1]
+        # elif mnem[1:4] in ('add', 'sub') and mnem[-1] in 'bw' and mnem[4:-1] in ('s', 'us'):
+        #     if eoc(2):
+        #         return ops[0] + mnem[-1] + ' |' + mnem[4:-1] + ('+' if mnem[1:4] == 'add' else '-') + '=| ' + ops[1]
+        elif mnem.startswith(('pcmpeq', 'pcmpgt')):
+            if eoc(2):
+                ty = simd_int_types[mnem[-1]]
+                return ops[0] + ty + ' |=| ' + ('==' if mnem[4:6] == 'eq' else '>') + ' ' + simd_reg_mem(ops[1], ty)
+        elif mnem[:-1] == 'pinsr':
+            if eoc(3):
+                if mnem[-1] in 'bw':
+                    sz = cpu_gp_reg_size(ops[1])
+                    if sz != 0:
+                        assert(sz == 4)
+                        ops[1] = cpu_gp_reg_4b_to_1b(ops[1]) if mnem[-1] == 'b' else cpu_gp_reg_4b_to_2b(ops[1])
+                return ops[0] + simd_int_types[mnem[-1]] + '[' + ops[2] + '] = ' + ops[1]
+        elif mnem[:-1] == 'pextr':
+            if coc(3, ops, token, errors):
+                return ops[0] + ' = ' + ops[1] + simd_int_types[mnem[-1]] + '[' + ops[2] + ']'
+
     elif mnem[-1] in 'sd' and mnem[-2] in 'sp':
         if mnem[:-2] in simd_simple_float_instructions:
             if eoc(2):
@@ -284,43 +330,6 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                 right = simd_reg_mem(ops[1], mnem[-1])
                 right = csym + ' ' + right if csym != '' else 'cmp' + mnem[3:-2] + '(' + right + ')'
                 return ops[0] + mnem[-1] + ' ' + op + ' ' + right
-
-    elif mnem[0] == 'p':
-        if mnem[1:-1] in simd_simple_int_instructions and mnem[-1] in simd_int_types:
-            if eoc(2):
-                return ops[0] + simd_int_types[mnem[-1]] + ' |' + simd_simple_int_instructions[mnem[1:-1]] + '=| ' + ops[1]
-        elif mnem[1:-1] in simd_int_intrinsics_with_2_operands and mnem[-1] in simd_int_types:
-            if eoc(2):
-                return ops[0] + simd_int_types[mnem[-1]] + ' |.=| ' + mnem[1:-1] + '(' + ops[1] + ')'
-        elif mnem == 'pmovmskb':
-            if coc(2, ops, token, errors):
-                return ops[0] + ' |=| ' + 'mask' + '(' + ops[1] + simd_int_types[mnem[-1]] + ')'
-        elif mnem[1:] in simd_simple_int_bitwise_instructions:
-            if eoc(2):
-                if mnem == 'pxor' and ops[0] == ops[1]:
-                    return ops[0] + ' |=| 0'
-                return ops[0] + ' |' + simd_simple_int_bitwise_instructions[mnem[1:]] + '=| ' + ops[1]
-        elif mnem == 'pandn':
-            if eoc(2):
-                return ops[0] + ' |=| ~' + ops[0] + ' & ' + ops[1]
-        # elif mnem[1:4] in ('add', 'sub') and mnem[-1] in 'bw' and mnem[4:-1] in ('s', 'us'):
-        #     if eoc(2):
-        #         return ops[0] + mnem[-1] + ' |' + mnem[4:-1] + ('+' if mnem[1:4] == 'add' else '-') + '=| ' + ops[1]
-        elif mnem.startswith(('pcmpeq', 'pcmpgt')):
-            if eoc(2):
-                ty = simd_int_types[mnem[-1]]
-                return ops[0] + ty + ' |=| ' + ('==' if mnem[4:6] == 'eq' else '>') + ' ' + simd_reg_mem(ops[1], ty)
-        elif mnem[:-1] == 'pinsr':
-            if eoc(3):
-                if mnem[-1] in 'bw':
-                    sz = cpu_gp_reg_size(ops[1])
-                    if sz != 0:
-                        assert(sz == 4)
-                        ops[1] = cpu_gp_reg_4b_to_1b(ops[1]) if mnem[-1] == 'b' else cpu_gp_reg_4b_to_2b(ops[1])
-                return ops[0] + simd_int_types[mnem[-1]] + '[' + ops[2] + '] = ' + ops[1]
-        elif mnem[:-1] == 'pextr':
-            if coc(3, ops, token, errors):
-                return ops[0] + ' = ' + ops[1] + simd_int_types[mnem[-1]] + '[' + ops[2] + ']'
 
     return ''
 
@@ -397,6 +406,40 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
         else:
             if coc(2, ops, token, errors):
                 return simd_cvt(mnem, ops[0], ops[1])
+
+    elif is_simd_sxzx(mnem[1:]):
+        if eoc(2):
+            return ops[0] + simd_int_types[mnem[-1]] + ' v|=| ' + mnem[5] + 'x(' + simd_reg_mem(ops[1], simd_int_types[mnem[-2]]) + ')'
+
+    elif mnem[1] == 'p':
+        if mnem[2:-1] in simd_simple_int_instructions and mnem[-1] in simd_int_types:
+            if eoc(3):
+                return ops[0] + simd_int_types[mnem[-1]] + ' v|=| ' + ops[1] + ' ' + simd_simple_int_instructions[mnem[2:-1]] + ' ' + ops[2]
+        elif mnem[2:-1] in simd_int_intrinsics_with_2_operands and mnem[-1] in simd_int_types:
+            if eoc(3):
+                return ops[0] + simd_int_types[mnem[-1]] + ' v|=| ' + mnem[2:-1] + '(' + ops[1] + ', ' + ops[2] + ')'
+        elif mnem[2:] in simd_simple_int_bitwise_instructions:
+            if eoc(3):
+                return ops[0] + ' v|=| ' + ops[1] + ' ' + simd_simple_int_bitwise_instructions[mnem[2:]] + ' ' + ops[2]
+        elif mnem == 'vpandn':
+            if eoc(3):
+                return ops[0] + ' v|=| ~' + ops[1] + ' & ' + ops[2]
+        elif mnem.startswith(('vpcmpeq', 'vpcmpgt')):
+            if eoc(3):
+                ty = simd_int_types[mnem[-1]]
+                return ops[0] + ty + ' v|=| ' + ops[1] + ty + ' ' + ('==' if mnem[5:7] == 'eq' else '>') + ' ' + simd_reg_mem(ops[2], ty)
+        elif mnem[:-1] == 'vpinsr':
+            if eoc(4):
+                assert(ops[0] == ops[1])
+                if mnem[-1] in 'bw':
+                    sz = cpu_gp_reg_size(ops[2])
+                    if sz != 0:
+                        assert(sz == 4)
+                        ops[2] = cpu_gp_reg_4b_to_1b(ops[2]) if mnem[-1] == 'b' else cpu_gp_reg_4b_to_2b(ops[2])
+                return ops[0] + simd_int_types[mnem[-1]] + '[' + ops[3] + '] v= ' + ops[2]
+        elif mnem[:-1] == 'vpextr':
+            if coc(3, ops, token, errors):
+                return ops[0] + ' v= ' + ops[1] + simd_int_types[mnem[-1]] + '[' + ops[2] + ']'
 
     elif mnem[-1] in 'sd' and mnem[-2] in 'sp':
         if mnem[1:-2] in simd_simple_float_instructions:
@@ -482,36 +525,6 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
                     return ops[0] + mnem[-1] + ' v' + op + ' ' + ops[1] + mnem[-1] + ' ' + csym + ' ' + simd_reg_mem(ops[2], mnem[-1])
                 else:
                     return ops[0] + mnem[-1] + ' v' + op + ' cmp' + mnem[4:-2] + '(' + ops[1] + ', ' + ops[2] + ')'
-
-    elif mnem[1] == 'p':
-        if mnem[2:-1] in simd_simple_int_instructions and mnem[-1] in simd_int_types:
-            if eoc(3):
-                return ops[0] + simd_int_types[mnem[-1]] + ' v|=| ' + ops[1] + ' ' + simd_simple_int_instructions[mnem[2:-1]] + ' ' + ops[2]
-        elif mnem[2:-1] in simd_int_intrinsics_with_2_operands and mnem[-1] in simd_int_types:
-            if eoc(3):
-                return ops[0] + simd_int_types[mnem[-1]] + ' v|=| ' + mnem[2:-1] + '(' + ops[1] + ', ' + ops[2] + ')'
-        elif mnem[2:] in simd_simple_int_bitwise_instructions:
-            if eoc(3):
-                return ops[0] + ' v|=| ' + ops[1] + ' ' + simd_simple_int_bitwise_instructions[mnem[2:]] + ' ' + ops[2]
-        elif mnem == 'vpandn':
-            if eoc(3):
-                return ops[0] + ' v|=| ~' + ops[1] + ' & ' + ops[2]
-        elif mnem.startswith(('vpcmpeq', 'vpcmpgt')):
-            if eoc(3):
-                ty = simd_int_types[mnem[-1]]
-                return ops[0] + ty + ' v|=| ' + ops[1] + ty + ' ' + ('==' if mnem[5:7] == 'eq' else '>') + ' ' + simd_reg_mem(ops[2], ty)
-        elif mnem[:-1] == 'vpinsr':
-            if eoc(4):
-                assert(ops[0] == ops[1])
-                if mnem[-1] in 'bw':
-                    sz = cpu_gp_reg_size(ops[2])
-                    if sz != 0:
-                        assert(sz == 4)
-                        ops[2] = cpu_gp_reg_4b_to_1b(ops[2]) if mnem[-1] == 'b' else cpu_gp_reg_4b_to_2b(ops[2])
-                return ops[0] + simd_int_types[mnem[-1]] + '[' + ops[3] + '] v= ' + ops[2]
-        elif mnem[:-1] == 'vpextr':
-            if coc(3, ops, token, errors):
-                return ops[0] + ' v= ' + ops[1] + simd_int_types[mnem[-1]] + '[' + ops[2] + ']'
 
     elif mnem in ('vextractf128', 'vextracti128'):
         if coc(3, ops, token, errors):

@@ -67,6 +67,8 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
                 simd_size = 16 << (ord(op[0].string[1].lower()) - ord('x'))
             elif mnem[-2] == 's': # scalar
                 simd_size = {'s':4, 'd':8}[mnem[-1]]
+            elif mnem == 'movd':
+                simd_size = 4
             break
 
     reg_size = 0
