@@ -325,7 +325,7 @@ ImagingResampleHorizontalConvolution8u:
         xmm7l |=a| 16bytes[rsi+rax*4]
         xmm1s = 4bytes[rdx+rax*4]
         rax += 1
-        xmm0i |=| zx(xmm7b)
+        xmm0i |=| zx(xmm7b[0:4])
         xmm1s |=| xmm1s[0,0,0,0]
         xmm0s |=| float(xmm0i)
         xmm0s |*=| xmm1
@@ -404,7 +404,7 @@ ImagingResampleVerticalConvolution8u:
         rax += 1
         xmm0l |=a| 16bytes[r8+r9]
         xmm1s |=| xmm1s[0,0,0,0]
-        xmm0i |=| zx(xmm0b)
+        xmm0i |=| zx(xmm0b[0:4])
         xmm0s |=| float(xmm0i)
         xmm0s |*=| xmm1
         xmm2s |+=| xmm0
@@ -733,7 +733,7 @@ ImagingResampleHorizontalConvolution8u:
         xmm4l |=a| 16bytes[rsi+rax*4]
         xmm1s = 4bytes[rdx+rax*4]
         rax += 1
-        xmm0i |=| zx(xmm4b)
+        xmm0i |=| zx(xmm4b[0:4])
         xmm1s |=| xmm1s[0,0,0,0]
         xmm0s |=| float(xmm0i)
         xmm0s |*=| xmm1
@@ -808,7 +808,7 @@ ImagingResampleVerticalConvolution8u:
         rax += 1
         xmm0l |=a| 16bytes[r8+r9]
         xmm1s |=| xmm1s[0,0,0,0]
-        xmm0i |=| zx(xmm0b)
+        xmm0i |=| zx(xmm0b[0:4])
         xmm0s |=| float(xmm0i)
         xmm0s |*=| xmm1
         xmm2s |+=| xmm0
@@ -1336,7 +1336,7 @@ ImagingResampleHorizontalConvolution8u:
         xmm4l v|=a| 16bytes[r13+rax*8+0]
         rax++
         ymm1d[2:4] v|=| xmm0d
-        ymm0i v|=| zx(xmm4b)
+        ymm0i v|=| zx(xmm4b[0:8])
         ymm0s v|=| float(ymm0i)
         ymm2s v|=| ymm1 * ymm0 + ymm2
         r14 != rdx : .L4
@@ -1354,7 +1354,7 @@ ImagingResampleHorizontalConvolution8u:
         xmm5l v|=a| 16bytes[rsi+rax*4]
         xmm2s v|=| broadcast(4bytes[rdx+rax*4])
         rax++
-        xmm0i v|=| zx(xmm5b)
+        xmm0i v|=| zx(xmm5b[0:4])
         xmm0s v|=| float(xmm0i)
         xmm1s v|=| xmm2 * xmm0 + xmm1
         r9i > eax : .L6
@@ -1439,7 +1439,7 @@ ImagingResampleVerticalConvolution8u:
         ymm2s v|=| broadcast(4bytes[rbx+rax*4])
         rax++
         xmm0l v|=a| 16bytes[r9+r10]
-        ymm0i v|=| zx(xmm0b)
+        ymm0i v|=| zx(xmm0b[0:8])
         ymm0s v|=| float(ymm0i)
         ymm1s v|=| ymm2 * ymm0 + ymm1
         ecx > eax : .L22
@@ -1478,7 +1478,7 @@ ImagingResampleVerticalConvolution8u:
         xmm2s v|=| broadcast(4bytes[rbx+rax*4])
         rax++
         xmm0l v|=a| 16bytes[r8+r9]
-        xmm0i v|=| zx(xmm0b)
+        xmm0i v|=| zx(xmm0b[0:4])
         xmm0s v|=| float(xmm0i)
         xmm1s v|=| xmm0 * xmm2 + xmm1
         ecx > eax : .L27

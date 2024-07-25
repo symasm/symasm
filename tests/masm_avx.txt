@@ -140,3 +140,26 @@ VPEXTRB BYTE PTR [rax], xmm1, 1       ; byte[rax] v= xmm1b[1]
 vandpd  xmm1,xmm0,XMMWORD PTR [rip+0x18ddba] ; xmm1d v|=| xmm0 & 16bytes[rip+18ddbah]
 vandnpd xmm1,xmm6,xmm4                       ; xmm1d v|=| ~xmm6 & xmm4
 vorpd   xmm1,xmm0,xmm6                       ; xmm1d v|=| xmm0 | xmm6
+
+------------------------------------------
+
+; After seeing `ymm0i v|=| zx(xmm4b)` I thought: why not `ymm0i v|=| zx(xmm4b[0:8])`?
+
+VPMOVZXBW xmm1, xmm2 ; xmm1w v|=| zx(xmm2b[0:8])
+VPMOVZXBW ymm1, xmm2 ; ymm1w v|=| zx(xmm2b)
+VPMOVZXBW zmm1, ymm2 ; zmm1w v|=| zx(ymm2b)
+VPMOVZXBD xmm1, xmm2 ; xmm1i v|=| zx(xmm2b[0:4])
+VPMOVZXBD ymm1, xmm2 ; ymm1i v|=| zx(xmm2b[0:8])
+VPMOVZXBD zmm1, xmm2 ; zmm1i v|=| zx(xmm2b)
+VPMOVZXBQ xmm1, xmm2 ; xmm1l v|=| zx(xmm2b[0:2])
+VPMOVZXBQ ymm1, xmm2 ; ymm1l v|=| zx(xmm2b[0:4])
+VPMOVZXBQ zmm1, xmm2 ; zmm1l v|=| zx(xmm2b[0:8])
+VPMOVZXWD xmm1, xmm2 ; xmm1i v|=| zx(xmm2w[0:4])
+VPMOVZXWD ymm1, xmm2 ; ymm1i v|=| zx(xmm2w)
+VPMOVZXWD zmm1, ymm2 ; zmm1i v|=| zx(ymm2w)
+VPMOVZXWQ xmm1, xmm2 ; xmm1l v|=| zx(xmm2w[0:2])
+VPMOVZXWQ ymm1, xmm2 ; ymm1l v|=| zx(xmm2w[0:4])
+VPMOVZXWQ zmm1, xmm2 ; zmm1l v|=| zx(xmm2w)
+VPMOVZXDQ xmm1, xmm2 ; xmm1l v|=| zx(xmm2i[0:2])
+VPMOVZXDQ ymm1, xmm2 ; ymm1l v|=| zx(xmm2i)
+VPMOVZXDQ zmm1, ymm2 ; zmm1l v|=| zx(ymm2i)

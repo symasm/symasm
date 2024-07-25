@@ -33,6 +33,13 @@ simd_int_types = {
     'q' : 'l',
 }
 
+simd_int_type_shifts = {
+    'b' : 0,
+    'w' : 1,
+    'd' : 2,
+    'q' : 3,
+}
+
 simd_simple_int_bitwise_instructions = {
     'xor' : '(+)',
     'or'  : '|',
@@ -192,6 +199,13 @@ def simd_cvt(mnem: str, op1, op2, a = ''):
 def is_simd_sxzx(mnem):
     return mnem[:-2] in ('pmovsx', 'pmovzx') and mnem[-2:] in ('bw', 'bd', 'bq', 'wd', 'wq', 'dq')
 
+def simd_sxzx_slice(mnem, ops) -> str:
+    #ratio = {'bw':2, 'bd':4, 'bq':8, 'wd':2, 'wq':4, 'dq':2}[mnem[-2:]]
+    dst_sz = 16 << (ord(ops[0][0].lower()) - ord('x')) >> simd_int_type_shifts[mnem[-1]]
+    src_sz = 16 << (ord(ops[1][0].lower()) - ord('x')) >> simd_int_type_shifts[mnem[-2]]
+    assert(src_sz >= dst_sz)
+    return f'[0:{dst_sz}]' if src_sz != dst_sz else ''
+
 def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
     if len(mnem) < 3:
         return ''
@@ -252,7 +266,7 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
 
     elif is_simd_sxzx(mnem):
         if eoc(2):
-            return ops[0] + simd_int_types[mnem[-1]] + ' |=| ' + mnem[4] + 'x(' + simd_reg_mem(ops[1], simd_int_types[mnem[-2]]) + ')'
+            return ops[0] + simd_int_types[mnem[-1]] + ' |=| ' + mnem[4] + 'x(' + simd_reg_mem(ops[1], simd_int_types[mnem[-2]] + simd_sxzx_slice(mnem, ops)) + ')'
 
     elif mnem[0] == 'p':
         if mnem[1:-1] in simd_simple_int_instructions and mnem[-1] in simd_int_types:
@@ -421,7 +435,7 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
 
     elif is_simd_sxzx(mnem[1:]):
         if eoc(2):
-            return ops[0] + simd_int_types[mnem[-1]] + ' v|=| ' + mnem[5] + 'x(' + simd_reg_mem(ops[1], simd_int_types[mnem[-2]]) + ')'
+            return ops[0] + simd_int_types[mnem[-1]] + ' v|=| ' + mnem[5] + 'x(' + simd_reg_mem(ops[1], simd_int_types[mnem[-2]] + simd_sxzx_slice(mnem, ops)) + ')'
 
     elif mnem in ('vbroadcastss', 'vbroadcastsd'):
         if eoc(2):
