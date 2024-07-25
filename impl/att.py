@@ -63,12 +63,14 @@ def translate_att_to_masm(mnem, source, operands, ops: list, token, errors: List
     simd_size = 0
     for op in operands:
         if len(op) == 1 and op[0].string[0] == '%' and is_simd_reg(op[0].string[1:]):
-            if mnem[-2] == 'p' or mnem.startswith('movdq'): # packed
+            if mnem[-2] == 'p' or mnem.startswith(('movdq', 'vmovdq')): # packed
                 simd_size = 16 << (ord(op[0].string[1].lower()) - ord('x'))
             elif mnem[-2] == 's': # scalar
                 simd_size = {'s':4, 'd':8}[mnem[-1]]
-            elif mnem == 'movd':
+            elif mnem in ('movd', 'vmovd'):
                 simd_size = 4
+            elif mnem in ('movq', 'vmovq'):
+                simd_size = 8
             break
 
     reg_size = 0

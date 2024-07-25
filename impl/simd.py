@@ -411,6 +411,10 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
         if eoc(2):
             return ops[0] + simd_int_types[mnem[-1]] + ' v|=| ' + mnem[5] + 'x(' + simd_reg_mem(ops[1], simd_int_types[mnem[-2]]) + ')'
 
+    elif mnem in ('vbroadcastss', 'vbroadcastsd'):
+        if eoc(2):
+            return ops[0] + mnem[-1] + ' v|=| broadcast(' + ops[1] + ')'
+
     elif mnem[1] == 'p':
         if mnem[2:-1] in simd_simple_int_instructions and mnem[-1] in simd_int_types:
             if eoc(3):
@@ -531,6 +535,12 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
             assert(ops[2] == '1')
             ty = 'd' if mnem == 'vextractf128' else 'l'
             return simd_reg_mem(ops[0], ty) + ' v|=| ' + ops[1] + ty + '[2:4]'
+
+    elif mnem in ('vinsertf128', 'vinserti128'):
+        if eoc(4):
+            assert(ops[3] == '1' and ops[0] == ops[1])
+            ty = 'd' if mnem == 'vinsertf128' else 'l'
+            return ops[0] + ty + '[2:4] v|=| ' + ops[2] + ty
 
     return ''
 

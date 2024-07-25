@@ -825,3 +825,680 @@ ImagingResampleVerticalConvolution8u:
         pop rbp
         .cfi_def_cfa_offset 8
         ret
+
+------------------------------------------
+
+// gcc-9 -O3 -march=haswell pillow-simd_avx.c -S
+
+ImagingResampleHorizontalConvolution8u:
+.LFB5286:
+    .cfi_startproc
+    testl   %edx, %edx
+    jle .L14
+    pushq   %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset 6, -16
+    movslq  %r9d, %r9
+    vmovaps .LC0(%rip), %ymm3
+    xorl    %r11d, %r11d
+    movq    %rsp, %rbp
+    .cfi_def_cfa_register 6
+    pushq   %r15
+    pushq   %r14
+    pushq   %r13
+    pushq   %r12
+    .cfi_offset 15, -24
+    .cfi_offset 14, -32
+    .cfi_offset 13, -40
+    .cfi_offset 12, -48
+    leal    -1(%rdx), %r12d
+    pushq   %rbx
+    .cfi_offset 3, -56
+    leaq    0(,%r9,4), %rbx
+    .p2align 4,,10
+    .p2align 3
+.L7:
+    movl    4(%rcx,%r11,8), %r9d
+    movslq  (%rcx,%r11,8), %r10
+    leal    -1(%r9), %eax
+    cmpl    %eax, %r10d
+    jge .L8
+    leal    -2(%r9), %r15d
+    movslq  %r10d, %rax
+    vmovaps %ymm3, %ymm2
+    subl    %r10d, %r15d
+    leaq    (%rsi,%rax,4), %r13
+    xorl    %eax, %eax
+    shrl    %r15d
+    movl    %r15d, %r14d
+    .p2align 4,,10
+    .p2align 3
+.L4:
+    vbroadcastss    4(%r8,%rax,8), %xmm0
+    vbroadcastss    (%r8,%rax,8), %ymm1
+    movq    %rax, %rdx
+    vmovdqa 0(%r13,%rax,8), %xmm4
+    incq    %rax
+    vinsertf128 $0x1, %xmm0, %ymm1, %ymm1
+    vpmovzxbd   %xmm4, %ymm0
+    vcvtdq2ps   %ymm0, %ymm0
+    vfmadd231ps %ymm0, %ymm1, %ymm2
+    cmpq    %rdx, %r14
+    jne .L4
+    leal    2(%r10,%r15,2), %eax
+.L3:
+    vextractf128    $0x1, %ymm2, %xmm1
+    vaddps  %xmm2, %xmm1, %xmm1
+    cmpl    %eax, %r9d
+    jle .L5
+    negq    %r10
+    cltq
+    leaq    (%r8,%r10,4), %rdx
+    .p2align 4,,10
+    .p2align 3
+.L6:
+    vmovdqa (%rsi,%rax,4), %xmm5
+    vbroadcastss    (%rdx,%rax,4), %xmm2
+    incq    %rax
+    vpmovzxbd   %xmm5, %xmm0
+    vcvtdq2ps   %xmm0, %xmm0
+    vfmadd231ps %xmm0, %xmm2, %xmm1
+    cmpl    %eax, %r9d
+    jg  .L6
+.L5:
+    vcvtps2dq   %xmm1, %xmm1
+    vpackssdw   %xmm1, %xmm1, %xmm1
+    leaq    1(%r11), %rax
+    addq    %rbx, %r8
+    vpackuswb   %xmm1, %xmm1, %xmm1
+    vmovd   %xmm1, (%rdi,%r11,4)
+    cmpq    %r11, %r12
+    je  .L18
+    movq    %rax, %r11
+    jmp .L7
+    .p2align 4,,10
+    .p2align 3
+.L8:
+    movl    %r10d, %eax
+    vmovaps %ymm3, %ymm2
+    jmp .L3
+    .p2align 4,,10
+    .p2align 3
+.L18:
+    vzeroupper
+    popq    %rbx
+    popq    %r12
+    popq    %r13
+    popq    %r14
+    popq    %r15
+    popq    %rbp
+    .cfi_def_cfa 7, 8
+    ret
+.L14:
+    .cfi_restore 3
+    .cfi_restore 6
+    .cfi_restore 12
+    .cfi_restore 13
+    .cfi_restore 14
+    .cfi_restore 15
+    ret
+    .cfi_endproc
+.LFE5286:
+    .size   ImagingResampleHorizontalConvolution8u, .-ImagingResampleHorizontalConvolution8u
+    .p2align 4
+    .globl  ImagingResampleVerticalConvolution8u
+    .type   ImagingResampleVerticalConvolution8u, @function
+ImagingResampleVerticalConvolution8u:
+.LFB5287:
+    .cfi_startproc
+    pushq   %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset 6, -16
+    movl    20(%rsi), %eax
+    movq    %rsp, %rbp
+    .cfi_def_cfa_register 6
+    pushq   %r13
+    pushq   %r12
+    .cfi_offset 13, -24
+    .cfi_offset 12, -32
+    movq    %r8, %r12
+    pushq   %rbx
+    .cfi_offset 3, -40
+    cmpl    $1, %eax
+    jle .L30
+    movslq  %edx, %r13
+    vmovaps .LC1(%rip), %ymm3
+    xorl    %r10d, %r10d
+    movq    %r13, %rax
+    negq    %rax
+    leaq    (%r8,%rax,4), %rbx
+    xorl    %r8d, %r8d
+    .p2align 4,,10
+    .p2align 3
+.L21:
+    vmovaps %ymm3, %ymm1
+    cmpl    %ecx, %edx
+    jge .L24
+    movq    48(%rsi), %r11
+    movq    %r13, %rax
+    vmovaps %ymm3, %ymm1
+    .p2align 4,,10
+    .p2align 3
+.L22:
+    movq    (%r11,%rax,8), %r9
+    vbroadcastss    (%rbx,%rax,4), %ymm2
+    incq    %rax
+    vmovdqa (%r9,%r10), %xmm0
+    vpmovzxbd   %xmm0, %ymm0
+    vcvtdq2ps   %ymm0, %ymm0
+    vfmadd231ps %ymm0, %ymm2, %ymm1
+    cmpl    %eax, %ecx
+    jg  .L22
+.L24:
+    vcvtps2dq   %ymm1, %ymm1
+    vpackssdw   %ymm1, %ymm1, %ymm1
+    addl    $2, %r8d
+    vpackuswb   %ymm1, %ymm1, %ymm1
+    vmovq   %xmm1, (%rdi,%r10)
+    movl    20(%rsi), %eax
+    addq    $8, %r10
+    leal    -1(%rax), %r9d
+    cmpl    %r8d, %r9d
+    jg  .L21
+    vzeroupper
+.L20:
+    cmpl    %eax, %r8d
+    jge .L34
+    movslq  %edx, %r13
+    vmovaps .LC2(%rip), %xmm3
+    movslq  %r8d, %r11
+    movq    %r13, %rax
+    negq    %rax
+    leaq    (%r12,%rax,4), %rbx
+    .p2align 4,,10
+    .p2align 3
+.L26:
+    leaq    0(,%r11,4), %r9
+    vmovaps %xmm3, %xmm1
+    cmpl    %ecx, %edx
+    jge .L29
+    movq    48(%rsi), %r10
+    movq    %r13, %rax
+    vmovaps %xmm3, %xmm1
+    .p2align 4,,10
+    .p2align 3
+.L27:
+    movq    (%r10,%rax,8), %r8
+    vbroadcastss    (%rbx,%rax,4), %xmm2
+    incq    %rax
+    vmovdqa (%r8,%r9), %xmm0
+    vpmovzxbd   %xmm0, %xmm0
+    vcvtdq2ps   %xmm0, %xmm0
+    vfmadd231ps %xmm2, %xmm0, %xmm1
+    cmpl    %eax, %ecx
+    jg  .L27
+.L29:
+    vcvtps2dq   %xmm1, %xmm1
+    vpackssdw   %xmm1, %xmm1, %xmm1
+    vpackuswb   %xmm1, %xmm1, %xmm1
+    vmovd   %xmm1, (%rdi,%r11,4)
+    incq    %r11
+    cmpl    %r11d, 20(%rsi)
+    jg  .L26
+.L34:
+    popq    %rbx
+    popq    %r12
+    popq    %r13
+    popq    %rbp
+    .cfi_remember_state
+    .cfi_def_cfa 7, 8
+    ret
+.L30:
+    .cfi_restore_state
+    xorl    %r8d, %r8d
+    jmp .L20
+    .cfi_endproc
+
+ImagingResampleHorizontalConvolution8u:
+.LFB5286:
+    .cfi_startproc
+    test    edx, edx
+    jle .L14
+    push    rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset 6, -16
+    movsx   r9, r9d
+    vmovaps ymm3, YMMWORD PTR .LC0[rip]
+    xor r11d, r11d
+    mov rbp, rsp
+    .cfi_def_cfa_register 6
+    push    r15
+    push    r14
+    push    r13
+    push    r12
+    .cfi_offset 15, -24
+    .cfi_offset 14, -32
+    .cfi_offset 13, -40
+    .cfi_offset 12, -48
+    lea r12d, -1[rdx]
+    push    rbx
+    .cfi_offset 3, -56
+    lea rbx, 0[0+r9*4]
+    .p2align 4,,10
+    .p2align 3
+.L7:
+    mov r9d, DWORD PTR 4[rcx+r11*8]
+    movsx   r10, DWORD PTR [rcx+r11*8]
+    lea eax, -1[r9]
+    cmp r10d, eax
+    jge .L8
+    lea r15d, -2[r9]
+    movsx   rax, r10d
+    vmovaps ymm2, ymm3
+    sub r15d, r10d
+    lea r13, [rsi+rax*4]
+    xor eax, eax
+    shr r15d, 1
+    mov r14d, r15d
+    .p2align 4,,10
+    .p2align 3
+.L4:
+    vbroadcastss    xmm0, DWORD PTR 4[r8+rax*8]
+    vbroadcastss    ymm1, DWORD PTR [r8+rax*8]
+    mov rdx, rax
+    vmovdqa xmm4, XMMWORD PTR 0[r13+rax*8]
+    inc rax
+    vinsertf128 ymm1, ymm1, xmm0, 0x1
+    vpmovzxbd   ymm0, xmm4
+    vcvtdq2ps   ymm0, ymm0
+    vfmadd231ps ymm2, ymm1, ymm0
+    cmp r14, rdx
+    jne .L4
+    lea eax, 2[r10+r15*2]
+.L3:
+    vextractf128    xmm1, ymm2, 0x1
+    vaddps  xmm1, xmm1, xmm2
+    cmp r9d, eax
+    jle .L5
+    neg r10
+    cdqe
+    lea rdx, [r8+r10*4]
+    .p2align 4,,10
+    .p2align 3
+.L6:
+    vmovdqa xmm5, XMMWORD PTR [rsi+rax*4]
+    vbroadcastss    xmm2, DWORD PTR [rdx+rax*4]
+    inc rax
+    vpmovzxbd   xmm0, xmm5
+    vcvtdq2ps   xmm0, xmm0
+    vfmadd231ps xmm1, xmm2, xmm0
+    cmp r9d, eax
+    jg  .L6
+.L5:
+    vcvtps2dq   xmm1, xmm1
+    vpackssdw   xmm1, xmm1, xmm1
+    lea rax, 1[r11]
+    add r8, rbx
+    vpackuswb   xmm1, xmm1, xmm1
+    vmovd   DWORD PTR [rdi+r11*4], xmm1
+    cmp r12, r11
+    je  .L18
+    mov r11, rax
+    jmp .L7
+    .p2align 4,,10
+    .p2align 3
+.L8:
+    mov eax, r10d
+    vmovaps ymm2, ymm3
+    jmp .L3
+    .p2align 4,,10
+    .p2align 3
+.L18:
+    vzeroupper
+    pop rbx
+    pop r12
+    pop r13
+    pop r14
+    pop r15
+    pop rbp
+    .cfi_def_cfa 7, 8
+    ret
+.L14:
+    .cfi_restore 3
+    .cfi_restore 6
+    .cfi_restore 12
+    .cfi_restore 13
+    .cfi_restore 14
+    .cfi_restore 15
+    ret
+    .cfi_endproc
+.LFE5286:
+    .size   ImagingResampleHorizontalConvolution8u, .-ImagingResampleHorizontalConvolution8u
+    .p2align 4
+    .globl  ImagingResampleVerticalConvolution8u
+    .type   ImagingResampleVerticalConvolution8u, @function
+ImagingResampleVerticalConvolution8u:
+.LFB5287:
+    .cfi_startproc
+    push    rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset 6, -16
+    mov eax, DWORD PTR 20[rsi]
+    mov rbp, rsp
+    .cfi_def_cfa_register 6
+    push    r13
+    push    r12
+    .cfi_offset 13, -24
+    .cfi_offset 12, -32
+    mov r12, r8
+    push    rbx
+    .cfi_offset 3, -40
+    cmp eax, 1
+    jle .L30
+    movsx   r13, edx
+    vmovaps ymm3, YMMWORD PTR .LC1[rip]
+    xor r10d, r10d
+    mov rax, r13
+    neg rax
+    lea rbx, [r8+rax*4]
+    xor r8d, r8d
+    .p2align 4,,10
+    .p2align 3
+.L21:
+    vmovaps ymm1, ymm3
+    cmp edx, ecx
+    jge .L24
+    mov r11, QWORD PTR 48[rsi]
+    mov rax, r13
+    vmovaps ymm1, ymm3
+    .p2align 4,,10
+    .p2align 3
+.L22:
+    mov r9, QWORD PTR [r11+rax*8]
+    vbroadcastss    ymm2, DWORD PTR [rbx+rax*4]
+    inc rax
+    vmovdqa xmm0, XMMWORD PTR [r9+r10]
+    vpmovzxbd   ymm0, xmm0
+    vcvtdq2ps   ymm0, ymm0
+    vfmadd231ps ymm1, ymm2, ymm0
+    cmp ecx, eax
+    jg  .L22
+.L24:
+    vcvtps2dq   ymm1, ymm1
+    vpackssdw   ymm1, ymm1, ymm1
+    add r8d, 2
+    vpackuswb   ymm1, ymm1, ymm1
+    vmovq   QWORD PTR [rdi+r10], xmm1
+    mov eax, DWORD PTR 20[rsi]
+    add r10, 8
+    lea r9d, -1[rax]
+    cmp r9d, r8d
+    jg  .L21
+    vzeroupper
+.L20:
+    cmp r8d, eax
+    jge .L34
+    movsx   r13, edx
+    vmovaps xmm3, XMMWORD PTR .LC2[rip]
+    movsx   r11, r8d
+    mov rax, r13
+    neg rax
+    lea rbx, [r12+rax*4]
+    .p2align 4,,10
+    .p2align 3
+.L26:
+    lea r9, 0[0+r11*4]
+    vmovaps xmm1, xmm3
+    cmp edx, ecx
+    jge .L29
+    mov r10, QWORD PTR 48[rsi]
+    mov rax, r13
+    vmovaps xmm1, xmm3
+    .p2align 4,,10
+    .p2align 3
+.L27:
+    mov r8, QWORD PTR [r10+rax*8]
+    vbroadcastss    xmm2, DWORD PTR [rbx+rax*4]
+    inc rax
+    vmovdqa xmm0, XMMWORD PTR [r8+r9]
+    vpmovzxbd   xmm0, xmm0
+    vcvtdq2ps   xmm0, xmm0
+    vfmadd231ps xmm1, xmm0, xmm2
+    cmp ecx, eax
+    jg  .L27
+.L29:
+    vcvtps2dq   xmm1, xmm1
+    vpackssdw   xmm1, xmm1, xmm1
+    vpackuswb   xmm1, xmm1, xmm1
+    vmovd   DWORD PTR [rdi+r11*4], xmm1
+    inc r11
+    cmp DWORD PTR 20[rsi], r11d
+    jg  .L26
+.L34:
+    pop rbx
+    pop r12
+    pop r13
+    pop rbp
+    .cfi_remember_state
+    .cfi_def_cfa 7, 8
+    ret
+.L30:
+    .cfi_restore_state
+    xor r8d, r8d
+    jmp .L20
+    .cfi_endproc
+
+ImagingResampleHorizontalConvolution8u:
+.LFB5286:
+        .cfi_startproc
+        edx <= 0 : .L14
+        push rbp
+        .cfi_def_cfa_offset 16
+        .cfi_offset 6, -16
+        r9 = sx(r9i)
+        ymm3s v|=a| 32bytes[.LC0+rip]
+        r11i = 0
+        rbp = rsp
+        .cfi_def_cfa_register 6
+        push r15
+        push r14
+        push r13
+        push r12
+        .cfi_offset 15, -24
+        .cfi_offset 14, -32
+        .cfi_offset 13, -40
+        .cfi_offset 12, -48
+        r12i = &[rdx-1]
+        push rbx
+        .cfi_offset 3, -56
+        rbx = &[r9*4+0]
+        .p2align 4,,10
+        .p2align 3
+.L7:
+        r9i = 4bytes[rcx+r11*8+4]
+        r10 = sx(4bytes[rcx+r11*8])
+        eax = &[r9-1]
+        r10i >= eax : .L8
+        r15i = &[r9-2]
+        rax = sx(r10i)
+        ymm2s v|=a| ymm3
+        r15i -= r10i
+        r13 = &[rsi+rax*4]
+        eax = 0
+        r15i u>>= 1
+        r14i = r15i
+        .p2align 4,,10
+        .p2align 3
+.L4:
+        xmm0s v|=| broadcast(4bytes[r8+rax*8+4])
+        ymm1s v|=| broadcast(4bytes[r8+rax*8])
+        rdx = rax
+        xmm4l v|=a| 16bytes[r13+rax*8+0]
+        rax++
+        ymm1d[2:4] v|=| xmm0d
+        ymm0i v|=| zx(xmm4b)
+        ymm0s v|=| float(ymm0i)
+        ymm2s v|=| ymm1 * ymm0 + ymm2
+        r14 != rdx : .L4
+        eax = &[r10+r15*2+2]
+.L3:
+        xmm1d v|=| ymm2d[2:4]
+        xmm1s v|=| xmm1 + xmm2
+        r9i <= eax : .L5
+        r10 = -r10
+        rax = sx(eax)
+        rdx = &[r8+r10*4]
+        .p2align 4,,10
+        .p2align 3
+.L6:
+        xmm5l v|=a| 16bytes[rsi+rax*4]
+        xmm2s v|=| broadcast(4bytes[rdx+rax*4])
+        rax++
+        xmm0i v|=| zx(xmm5b)
+        xmm0s v|=| float(xmm0i)
+        xmm1s v|=| xmm2 * xmm0 + xmm1
+        r9i > eax : .L6
+.L5:
+        xmm1i v|=| int(round(xmm1s))
+        xmm1w v|=| packsd(xmm1, xmm1)
+        rax = &[r11+1]
+        r8 += rbx
+        xmm1b v|=| packusw(xmm1, xmm1)
+        4bytes[rdi+r11*4] v= xmm1i
+        r12 == r11 : .L18
+        r11 = rax
+        :.L7
+        .p2align 4,,10
+        .p2align 3
+.L8:
+        eax = r10i
+        ymm2s v|=a| ymm3
+        :.L3
+        .p2align 4,,10
+        .p2align 3
+.L18:
+        vzeroupper
+        pop rbx
+        pop r12
+        pop r13
+        pop r14
+        pop r15
+        pop rbp
+        .cfi_def_cfa 7, 8
+        ret
+.L14:
+        .cfi_restore 3
+        .cfi_restore 6
+        .cfi_restore 12
+        .cfi_restore 13
+        .cfi_restore 14
+        .cfi_restore 15
+        ret
+        .cfi_endproc
+.LFE5286:
+        .size   ImagingResampleHorizontalConvolution8u, .-ImagingResampleHorizontalConvolution8u
+        .p2align 4
+        .globl  ImagingResampleVerticalConvolution8u
+        .type   ImagingResampleVerticalConvolution8u, @function
+ImagingResampleVerticalConvolution8u:
+.LFB5287:
+        .cfi_startproc
+        push rbp
+        .cfi_def_cfa_offset 16
+        .cfi_offset 6, -16
+        eax = 4bytes[rsi+20]
+        rbp = rsp
+        .cfi_def_cfa_register 6
+        push r13
+        push r12
+        .cfi_offset 13, -24
+        .cfi_offset 12, -32
+        r12 = r8
+        push rbx
+        .cfi_offset 3, -40
+        eax <= 1 : .L30
+        r13 = sx(edx)
+        ymm3s v|=a| 32bytes[.LC1+rip]
+        r10i = 0
+        rax = r13
+        rax = -rax
+        rbx = &[r8+rax*4]
+        r8i = 0
+        .p2align 4,,10
+        .p2align 3
+.L21:
+        ymm1s v|=a| ymm3
+        edx >= ecx : .L24
+        r11 = 8bytes[rsi+48]
+        rax = r13
+        ymm1s v|=a| ymm3
+        .p2align 4,,10
+        .p2align 3
+.L22:
+        r9 = 8bytes[r11+rax*8]
+        ymm2s v|=| broadcast(4bytes[rbx+rax*4])
+        rax++
+        xmm0l v|=a| 16bytes[r9+r10]
+        ymm0i v|=| zx(xmm0b)
+        ymm0s v|=| float(ymm0i)
+        ymm1s v|=| ymm2 * ymm0 + ymm1
+        ecx > eax : .L22
+.L24:
+        ymm1i v|=| int(round(ymm1s))
+        ymm1w v|=| packsd(ymm1, ymm1)
+        r8i += 2
+        ymm1b v|=| packusw(ymm1, ymm1)
+        8bytes[rdi+r10] v= xmm1l
+        eax = 4bytes[rsi+20]
+        r10 += 8
+        r9i = &[rax-1]
+        r9i > r8i : .L21
+        vzeroupper
+.L20:
+        r8i >= eax : .L34
+        r13 = sx(edx)
+        xmm3s v|=a| 16bytes[.LC2+rip]
+        r11 = sx(r8i)
+        rax = r13
+        rax = -rax
+        rbx = &[r12+rax*4]
+        .p2align 4,,10
+        .p2align 3
+.L26:
+        r9 = &[r11*4+0]
+        xmm1s v|=a| xmm3
+        edx >= ecx : .L29
+        r10 = 8bytes[rsi+48]
+        rax = r13
+        xmm1s v|=a| xmm3
+        .p2align 4,,10
+        .p2align 3
+.L27:
+        r8 = 8bytes[r10+rax*8]
+        xmm2s v|=| broadcast(4bytes[rbx+rax*4])
+        rax++
+        xmm0l v|=a| 16bytes[r8+r9]
+        xmm0i v|=| zx(xmm0b)
+        xmm0s v|=| float(xmm0i)
+        xmm1s v|=| xmm0 * xmm2 + xmm1
+        ecx > eax : .L27
+.L29:
+        xmm1i v|=| int(round(xmm1s))
+        xmm1w v|=| packsd(xmm1, xmm1)
+        xmm1b v|=| packusw(xmm1, xmm1)
+        4bytes[rdi+r11*4] v= xmm1i
+        r11++
+        4bytes[rsi+20] > r11i : .L26
+.L34:
+        pop rbx
+        pop r12
+        pop r13
+        pop rbp
+        .cfi_remember_state
+        .cfi_def_cfa 7, 8
+        ret
+.L30:
+        .cfi_restore_state
+        r8i = 0
+        :.L20
+        .cfi_endproc
