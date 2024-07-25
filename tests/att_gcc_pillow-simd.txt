@@ -741,10 +741,10 @@ ImagingResampleHorizontalConvolution8u:
         r9i > eax : .L4
 .L3:
         xmm2i |=| int(round(xmm2s))
-        xmm2w |.=| packsd(xmm2)
+        xmm2w |=| packss(xmm2i, xmm2i)
         rax = &[r10+1]
         r11 += r8
-        xmm2b |.=| packusw(xmm2)
+        xmm2b |=| packus(xmm2w, xmm2w)
         4bytes[rdi+r10*4] = xmm2i
         rbp == r10 : .L14
         r10 = rax
@@ -815,8 +815,8 @@ ImagingResampleVerticalConvolution8u:
         ecx > eax : .L19
 .L21:
         xmm2i |=| int(round(xmm2s))
-        xmm2w |.=| packsd(xmm2)
-        xmm2b |.=| packusw(xmm2)
+        xmm2w |=| packss(xmm2i, xmm2i)
+        xmm2b |=| packus(xmm2w, xmm2w)
         4bytes[rbx+rdx*4] = xmm2i
         rdx += 1
         4bytes[rsi+20] > edx : .L18
@@ -1360,10 +1360,10 @@ ImagingResampleHorizontalConvolution8u:
         r9i > eax : .L6
 .L5:
         xmm1i v|=| int(round(xmm1s))
-        xmm1w v|=| packsd(xmm1, xmm1)
+        xmm1w v|=| packss(xmm1i, xmm1i)
         rax = &[r11+1]
         r8 += rbx
-        xmm1b v|=| packusw(xmm1, xmm1)
+        xmm1b v|=| packus(xmm1w, xmm1w)
         4bytes[rdi+r11*4] v= xmm1i
         r12 == r11 : .L18
         r11 = rax
@@ -1445,9 +1445,9 @@ ImagingResampleVerticalConvolution8u:
         ecx > eax : .L22
 .L24:
         ymm1i v|=| int(round(ymm1s))
-        ymm1w v|=| packsd(ymm1, ymm1)
+        ymm1w v|=| packss(ymm1i, ymm1i)
         r8i += 2
-        ymm1b v|=| packusw(ymm1, ymm1)
+        ymm1b v|=| packus(ymm1w, ymm1w)
         8bytes[rdi+r10] v= xmm1l
         eax = 4bytes[rsi+20]
         r10 += 8
@@ -1484,8 +1484,8 @@ ImagingResampleVerticalConvolution8u:
         ecx > eax : .L27
 .L29:
         xmm1i v|=| int(round(xmm1s))
-        xmm1w v|=| packsd(xmm1, xmm1)
-        xmm1b v|=| packusw(xmm1, xmm1)
+        xmm1w v|=| packss(xmm1i, xmm1i)
+        xmm1b v|=| packus(xmm1w, xmm1w)
         4bytes[rdi+r11*4] v= xmm1i
         r11++
         4bytes[rsi+20] > r11i : .L26

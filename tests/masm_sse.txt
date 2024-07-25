@@ -144,7 +144,7 @@ movlpd  qword ptr [ebp-14H], xmm0 ; 8bytes[ebp-14H] = xmm0d[0]
 
 ; Python 3.6.9 on Ubuntu 18.04
 ; `xmm0b |.=| packus(xmm15w)`?
-packuswb xmm0,xmm15 ; xmm0b |.=| packusw(xmm15)
+packuswb xmm0,xmm15 ; xmm0b |=| packus(xmm0w, xmm15w)
 psrldq xmm8,0x8     ; xmm8 |.=| bshr(8)
 pmuludq xmm12,xmm4  ; xmm12ul |.=| mului(xmm4)
 movmskpd eax,xmm0   ; eax |=| mask(xmm0d)

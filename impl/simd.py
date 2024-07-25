@@ -120,17 +120,19 @@ simd_special_intrinsics_with_2_operands = {
     'unpckhps'  : ('unpackhi', 's'),
     'unpckhpd'  : ('unpackhi', 'd'),
 
-    'packuswb'  : ('packusw',  'b'),
-    'packusdw'  : ('packusd',  'w'),
-    'packsswb'  : ('packsw',   'b'),
-    'packssdw'  : ('packsd',   'w'),
-
     'pslldq'    : ('bshl',     ''),
     'psrldq'    : ('bshr',     ''),
     'pmuldq'    : ('muli',     'l'),
     'pmuludq'   : ('mului',    'ul'),
 
     'pshufb'    : ('shuffle',  'b'),
+}
+
+simd_packs_intrinsics = {
+    'packuswb' : ('packus', 'w', 'b'),
+    'packusdw' : ('packus', 'i', 'w'),
+    'packsswb' : ('packss', 'w', 'b'),
+    'packssdw' : ('packss', 'i', 'w'),
 }
 
 def is_simd_reg(operand):
@@ -238,6 +240,11 @@ def sse_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
         if eoc(2):
             iname, ty = simd_special_intrinsics_with_2_operands[mnem]
             return ops[0] + ty + ' |.=| ' + iname + '(' + ops[1] + ')'
+
+    elif mnem in simd_packs_intrinsics:
+        if eoc(2):
+            iname, ty_src, ty_dst = simd_packs_intrinsics[mnem]
+            return ops[0] + ty_dst + ' |=| ' + iname + '(' + ops[0] + ty_src + ', ' + ops[1] + ty_src + ')'
 
     elif mnem[:-5] in ('cvt', 'cvtt'):
         if coc(2, ops, token, errors):
@@ -395,6 +402,11 @@ def simd_to_symasm(mnem, ops: List[str], token, errors: List[Error] = None):
         if eoc(3):
             iname, ty = simd_special_intrinsics_with_2_operands[mnem[1:]]
             return ops[0] + ty + ' v|=| ' + iname + '(' + ops[1] + ', ' + ops[2] + ')'
+
+    elif mnem[1:] in simd_packs_intrinsics:
+        if eoc(3):
+            iname, ty_src, ty_dst = simd_packs_intrinsics[mnem[1:]]
+            return ops[0] + ty_dst + ' v|=| ' + iname + '(' + ops[1] + ty_src + ', ' + ops[2] + ty_src + ')'
 
     elif mnem[:-5] in ('vcvt', 'vcvtt'):
         if mnem.endswith(('ss', 'sd')):
