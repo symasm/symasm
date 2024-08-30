@@ -652,7 +652,7 @@ def answer(request):
                 indent = 2
         else:
             ans = answerer(request[:-1])
-        ans = re.sub(r'\[\[\[[\s\S]+?\]\]\]', '', ans) # remove comments
+        ans = re.sub(r'\[\[\[.+?\]\]\]', '', ans, re.DOTALL) # remove comments
         return ' ' * (indent-1) + ans.replace("\n", "\n" + ' ' * indent)
 
     if request[0] == '!': return 'jn' + request[1] + request[4:] # just for `!o : skip_int_4` [-REMOVE ME ASAP-]
