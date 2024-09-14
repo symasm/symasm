@@ -224,7 +224,6 @@ simple_instructions_with_2_operands = {
     'shr' : 'u>>',
     'rol' : '(<<)',
     'ror' : '(>>)',
-    'xchg': '><',
 }
 
 asm_sizes = {
@@ -421,6 +420,10 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
         elif mnem in simple_instructions_with_2_operands:
             if eoc(2):
                 res.append((line, prefix + ops[0] + ' ' + simple_instructions_with_2_operands[mnem] + '= ' + ops[1]))
+
+        elif mnem == 'xchg':
+            if eoc(2):
+                res.append((line, ops[0] + ' >< ' + ops[1]))
 
         elif mnem in ('movs', 'movabs'):
             if eoc(2):

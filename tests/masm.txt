@@ -91,6 +91,7 @@ sbb eax, ebx      ; eax -= ebx + cf
 ------------------------------------------
 
 lea edx, [eax + ebx*2] ; edx = &[eax + ebx*2]
+xchg eax, ecx          ; eax >< ecx
 
 ------------------------------------------
 
