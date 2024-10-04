@@ -1,4 +1,4 @@
-import os, json, subprocess
+import os, json, subprocess, re
 
 if not os.path.isfile('instr_mcodebytes.json'):
     open('instr_mcodebytes.json', 'w').write(json.dumps({'fasm_path':'-', 'nasm_path':'-', 'gas_path':'', 'uasm_path':'-'}, indent=0))
@@ -84,7 +84,8 @@ while True:
 
     # GAS
     if gas_path != '-':
-        subprocess.run([gas_path + 'as', '-msyntax=intel', '-mnaked-reg'], input=instruction+"\n", universal_newlines=True, stdout=subprocess.DEVNULL) # -'‘universal_newlines’'+'‘text’' for Python 3.7
+        instructiong = re.sub(r'\b(\d[\da-fA-F]*)[hH]\b', r'0x\1', instruction) # >[https://stackoverflow.com/questions/46746145/x86-intel-syntax-ambigious-size-for-mov-junk-h-after-expression <- google:‘Error: junk `h' after expression’]:‘GNU's assembler (even in Intel syntax mode) doesn't support constants with the base specified as a suffix.’
+        subprocess.run([gas_path + 'as', '-msyntax=intel', '-mnaked-reg'], input=instructiong+"\n", universal_newlines=True, stdout=subprocess.DEVNULL) # -'‘universal_newlines’'+'‘text’' for Python 3.7
         b = open('a.out', 'rb').read()
         gas_code = bytes_to_hex(b[0x8C : 0x8C+int.from_bytes(b[0xD2:0xD6], 'little')] if os.name == 'nt' else b[0x40 : 0x40+int.from_bytes(b[0x138:0x13C], 'little')])
         os.remove('a.out')
