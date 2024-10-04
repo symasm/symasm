@@ -125,3 +125,14 @@ clc ; cf = 0
 
 test   eax,eax                          ; eax <= 0 : 421bd3 <PyODict_New@@Base+0x83e>
 jle    421bd3 <PyODict_New@@Base+0x83e> ; -
+
+------------------------------------------
+
+mov eax, 123456h       ; eax = 123456h
+mov eax, 123456h       ; eax = 123456h
+mov rax, 123456h       ; rax = (123456h)
+mov rax, 123456789012h ; rax = 123456789012h
+mov rax, 0             ; rax = (0)
+mov rax, -1            ; rax = -1
+mov rax, 4294967295    ; rax = (4294967295)
+mov rax, 4294967296    ; rax = 4294967296

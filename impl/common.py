@@ -117,3 +117,13 @@ def is_cpu_gp_reg(reg):
 def size_keyword(bytes):
     assert(bytes >= 1)
     return 'byte' if bytes == 1 else f'{bytes}bytes'
+
+def imm_in_range(op, start, end):
+    if not op[0].isdigit():
+        return False
+    i = 1
+    while i < len(op) and op[i].isdigit():
+        i += 1
+    if op[i:].startswith('bytes'):
+        return False
+    return start <= asm_number(op) < end
