@@ -1,5 +1,6 @@
 from enum import IntEnum
 from typing import List, NamedTuple
+Int64 = int
 
 class Token:
     class Category(IntEnum): # why ‘Category’: >[https://docs.python.org/3/reference/lexical_analysis.html#other-tokens]:‘the following categories of tokens exist’
@@ -53,10 +54,10 @@ def coc(n, ops, token, errors: List[Error] = None): # check operand count
 def asm_number(num):
     num = num.lower()
     if num[-1] == 'h':
-        return int(num[:-1], 16)
+        return Int64(num[:-1], 16)
     if num[-1] == 'b':
-        return int(num[:-1], 2)
-    return int(num)
+        return Int64(num[:-1], 2)
+    return Int64(num)
 
 cpu_gp_regs_1b = {'al', 'bl', 'cl', 'dl', 'ah', 'bh', 'ch', 'dh'}
 cpu_gp_regs_2b = {'ax', 'bx', 'cx', 'dx', 'si', 'di', 'sp', 'bp'}

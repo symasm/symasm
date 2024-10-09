@@ -395,7 +395,7 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
         if mnem == 'mov':
             eoc(2)
             rsz = cpu_gp_reg_size(ops[0])
-            res.append((line, ops[0] + ' = ' + ('(0)' if ops[1] == '0' and rsz != 0 else (f'({ops[1]})' if rsz == 8 and imm_in_range(ops[1], 0, 0x1_0000_0000) else ops[1]))))
+            res.append((line, ops[0] + ' = ' + ('(0)' if ops[1] == '0' and rsz != 0 else (f'({ops[1]})' if rsz == 8 and imm_in_range(ops[1], Int64(0), 0x1_0000_0000) else ops[1]))))
 
         elif mnem == 'xor':
             eoc(2)
