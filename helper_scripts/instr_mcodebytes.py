@@ -60,7 +60,7 @@ while True:
         # UASM >[https://stackoverflow.com/questions/304555/masm-under-linux <- google:‘masm linux’]:‘UASM is a free MASM-compatible assembler based on JWasm.’
         if uasm_path != '-':
             open('input.uasm', 'w').write(".X64\n.MODEL FLAT\n.CODE\n" + instruction + "\nEND")
-            subprocess.run([uasm_path + 'uasm', '-bin', 'input.uasm'], stdout=subprocess.DEVNULL)
+            subprocess.run([os.path.join(uasm_path, 'uasm'), '-bin', 'input.uasm'], stdout=subprocess.DEVNULL)
             masm_code = bytes_to_hex(open('input.BIN', 'rb').read())
             os.remove('input.uasm')
             os.remove('input.BIN')
@@ -70,7 +70,7 @@ while True:
     # FASM
     if fasm_path != '-':
         open('input.asm', 'w').write("use64\n" + instruction)
-        subprocess.run([fasm_path + 'fasm', 'input.asm', 'output.bin'], stdout=subprocess.DEVNULL)
+        subprocess.run([os.path.join(fasm_path, 'fasm'), 'input.asm', 'output.bin'], stdout=subprocess.DEVNULL)
         fasm_code = bytes_to_hex(open('output.bin', 'rb').read())
         os.remove('output.bin')
     else:
@@ -78,7 +78,7 @@ while True:
 
     # NASM
     if nasm_path != '-':
-        subprocess.run([nasm_path + 'nasm', 'input.asm', '-o', 'output_nasm.bin'], stdout=subprocess.DEVNULL)
+        subprocess.run([os.path.join(nasm_path, 'nasm'), 'input.asm', '-o', 'output_nasm.bin'], stdout=subprocess.DEVNULL)
         nasm_code = bytes_to_hex(open('output_nasm.bin', 'rb').read())
         os.remove('output_nasm.bin')
         os.remove('input.asm')
@@ -88,7 +88,7 @@ while True:
     # GAS
     if gas_path != '-':
         instructiong = re.sub(r'\b(\d[\da-fA-F]*)[hH]\b', r'0x\1', instruction) # >[https://stackoverflow.com/questions/46746145/x86-intel-syntax-ambigious-size-for-mov-junk-h-after-expression <- google:‘Error: junk `h' after expression’]:‘GNU's assembler (even in Intel syntax mode) doesn't support constants with the base specified as a suffix.’
-        subprocess.run([gas_path + 'as', '-msyntax=intel', '-mnaked-reg'], input=instructiong+"\n", universal_newlines=True, stdout=subprocess.DEVNULL) # -'‘universal_newlines’'+'‘text’' for Python 3.7
+        subprocess.run([os.path.join(gas_path, 'as'), '-msyntax=intel', '-mnaked-reg'], input=instructiong+"\n", universal_newlines=True, stdout=subprocess.DEVNULL) # -'‘universal_newlines’'+'‘text’' for Python 3.7
         b = open('a.out', 'rb').read()
         gas_code = bytes_to_hex(b[0x8C : 0x8C+int.from_bytes(b[0xD2:0xD6], 'little')] if os.name == 'nt' else b[0x40 : 0x40+int.from_bytes(b[0x138:0x13C], 'little')])
         os.remove('a.out')
