@@ -14,10 +14,13 @@ if os.name == 'nt':
         was_break = False
         for version in ['2022', '2019', '2017', '2015', '2013']:
             for edition in ['BuildTools', 'Community', 'Enterprise', 'Professional']:
-                vcvarsall = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\' + version + '\\' + edition + R'\VC\Auxiliary\Build\vcvarsall.bat'
-                if os.path.isfile(vcvarsall):
-                    was_break = True
-                    #print('Using ' + version + '\\' + edition)
+                for x86 in [0, 1]:
+                    vcvarsall = 'C:\\Program Files' + ' (x86)'*x86 + '\\Microsoft Visual Studio\\' + version + '\\' + edition + R'\VC\Auxiliary\Build\vcvarsall.bat'
+                    if os.path.isfile(vcvarsall):
+                        was_break = True
+                        #print('Using ' + version + '\\' + edition)
+                        break
+                if was_break:
                     break
             if was_break:
                 break
