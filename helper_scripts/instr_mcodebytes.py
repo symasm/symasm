@@ -67,9 +67,11 @@ while True:
         else:
             masm_code = '-'
 
+    if fasm_path != '-' or nasm_path != '-':
+        open('input.asm', 'w').write("use64\n" + instruction)
+
     # FASM
     if fasm_path != '-':
-        open('input.asm', 'w').write("use64\n" + instruction)
         subprocess.run([os.path.join(fasm_path, 'fasm'), 'input.asm', 'output.bin'], stdout=subprocess.DEVNULL)
         fasm_code = bytes_to_hex(open('output.bin', 'rb').read())
         os.remove('output.bin')
