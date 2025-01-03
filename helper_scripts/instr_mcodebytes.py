@@ -68,7 +68,7 @@ while True:
             masm_code = '-'
 
     if fasm_path != '-' or nasm_path != '-':
-        open('input.asm', 'w').write("use64\n" + instruction)
+        open('input.asm', 'w').write("use64\n" + re.sub(r'\bst\((\d)\)', r'st\1', instruction, flags=re.IGNORECASE))
 
     # FASM
     if fasm_path != '-':
