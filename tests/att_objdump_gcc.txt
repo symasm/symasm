@@ -82,6 +82,6 @@ att & masm:
         cf = rax.bit(23h), rax.bit(23h) = 0
         cf = rax.bit(3fh), rax.bit(3fh) = 1
         cf = rax.bit(3fh), rax.bit(3fh).flip()
-        bx = 2bytes[rax+10h] if !=
+        [[partial]] bx = 2bytes[rax+10h] if !=
         lock cmpxchg 8bytes[rdx], rbx
         lock 4bytes[rsi-60h] -= 1

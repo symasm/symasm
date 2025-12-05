@@ -30,7 +30,7 @@ palindrome_start:
     mov rbx, rdx             ; rbx = rdx
     sub rbx, rcx             ; rbx -= rcx
     sub rbx, 1               ; rbx -= 1
-    mov bl, byte [rdi + rbx] ; bl = byte [rdi + rbx]
+    mov bl, byte [rdi + rbx] ; [[partial]] bl = byte [rdi + rbx]
     cmp byte [rdi + rcx], bl ; byte [rdi + rcx] != bl : palindrome_failed
     jne palindrome_failed    ; -
     dec rcx                  ; rcx--
@@ -136,3 +136,22 @@ mov rax, 0             ; rax = (0)
 mov rax, -1            ; rax = -1
 mov rax, 4294967295    ; rax = (4294967295)
 mov rax, 4294967296    ; rax = 4294967296
+
+------------------------------------------
+
+dec     di             ; [[partial]] --di != 0 : .L3
+jne    .L3             ; -
+add ax, bx             ; [[partial]] ax += bx
+imul bx                ; [[partial]] dx:ax *= bx
+imul cx, dx            ; [[partial]] cx *= dx
+neg ax                 ; [[partial]] ax = -ax
+dec ax                 ; [[partial]] ax--
+and ax, bx             ; [[partial]] ax &= bx
+xor ax, bx             ; [[partial]] ax (+)= bx
+xor ax, ax             ; [[partial]] ax = 0
+rcl ax, cl             ; [[partial]] cf:ax (<<)= cl
+adc ax, bx             ; [[partial]] ax += bx + cf
+lea dx, [ax + bx*2]    ; [[partial]] dx = &[ax + bx*2]
+xchg ax, cx            ; [[partial]] ax >< cx
+movsx ax, BYTE PTR [b] ; [[partial]] ax = sx(byte[b])
+shld dx, ax, 16        ; [[partial]] dx:_ = dx:ax << 16

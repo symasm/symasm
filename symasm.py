@@ -392,17 +392,20 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
                 if errors is not None:
                     errors.append(error_at_token(f'`{mnem}` instruction must have {fr} through {thru} operands', line[0]))
 
+        def partial():
+            return '[[partial]] ' * (cpu_gp_reg_size(ops[0]) in (1, 2))
+
         if mnem == 'mov':
             eoc(2)
             rsz = cpu_gp_reg_size(ops[0])
-            res.append((line, ops[0] + ' = ' + ('(0)' if ops[1] == '0' and rsz != 0 else (f'({ops[1]})' if rsz == 8 and imm_in_range(ops[1], Int64(0), 0x1_0000_0000) else ops[1]))))
+            res.append((line, partial() + ops[0] + ' = ' + ('(0)' if ops[1] == '0' and rsz != 0 else (f'({ops[1]})' if rsz == 8 and imm_in_range(ops[1], Int64(0), 0x1_0000_0000) else ops[1]))))
 
         elif mnem == 'xor':
             eoc(2)
             if ops[0] == ops[1]:
-                res.append((line, ops[0] + ' = 0'))
+                res.append((line, partial() + ops[0] + ' = 0'))
             else:
-                res.append((line, ops[0] + ' (+)= ' + ops[1]))
+                res.append((line, partial() + ops[0] + ' (+)= ' + ops[1]))
 
         elif mnem == 'lea':
             eoc(2)
@@ -416,15 +419,15 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
                 else:
                     assert(is_symasm_size(ops[1][:bracket_pos]))
                     ops[1] = ops[1][bracket_pos:]
-            res.append((line, ops[0] + ' = &' + ops[1]))
+            res.append((line, partial() + ops[0] + ' = &' + ops[1]))
 
         elif mnem in simple_instructions_with_2_operands:
             if eoc(2):
-                res.append((line, prefix + ops[0] + ' ' + simple_instructions_with_2_operands[mnem] + '= ' + ops[1]))
+                res.append((line, prefix + partial() + ops[0] + ' ' + simple_instructions_with_2_operands[mnem] + '= ' + ops[1]))
 
         elif mnem == 'xchg':
             if eoc(2):
-                res.append((line, ops[0] + ' >< ' + ops[1]))
+                res.append((line, partial() + ops[0] + ' >< ' + ops[1]))
 
         elif mnem in ('movs', 'movabs'):
             if eoc(2):
@@ -432,7 +435,7 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
 
         elif mnem in ('movsx', 'movsxd', 'movzx'):
             if eoc(2):
-                res.append((line, ops[0] + ' = ' + mnem[3:5] + '(' + ops[1] + ')'))
+                res.append((line, partial() + ops[0] + ' = ' + mnem[3:5] + '(' + ops[1] + ')'))
 
         elif mnem in ('push', 'pop', 'prefetchnta', 'prefetcht0', 'bswap'):
             eoc(1)
@@ -454,12 +457,12 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
             if mnem == 'dec' and len(next_line) > 0:
                 next_mnem = next_line[0].string.lower()
                 if next_mnem.startswith('j') and next_mnem[1:] in ('z', 'nz', 'e', 'ne'):
-                    res.append((line, '--' + ops[0] + (' !=' if next_mnem[1] == 'n' else ' ==') + ' 0 : ' + op_str(next_line[1:])))
+                    res.append((line, partial() + '--' + ops[0] + (' !=' if next_mnem[1] == 'n' else ' ==') + ' 0 : ' + op_str(next_line[1:])))
                     res.append((next_line, '-'))
                     next_line = lines.next_line()
                     continue
 
-            res.append((line, ops[0] + ('++' if mnem == 'inc' else '--')))
+            res.append((line, partial() + ops[0] + ('++' if mnem == 'inc' else '--')))
 
         elif mnem == 'cmp':
             eoc(2)
@@ -544,7 +547,7 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
 
         elif mnem.startswith('cmov') and mnem[4:] in cc_to_sym:
             eoc(2)
-            res.append((line, ops[0] + ' = ' + ops[1] + ' if ' + cc_to_sym[mnem[4:]]))
+            res.append((line, partial() + ops[0] + ' = ' + ops[1] + ' if ' + cc_to_sym[mnem[4:]]))
 
         elif mnem.startswith('j') and mnem[1:] in cc_to_sym:
             eoc(1)
@@ -556,38 +559,38 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
 
         elif mnem in ('neg', 'not'):
             eoc(1)
-            res.append((line, ops[0] + ' = ' + ('-' if mnem == 'neg' else '~') + ops[0]))
+            res.append((line, partial() + ops[0] + ' = ' + ('-' if mnem == 'neg' else '~') + ops[0]))
 
         elif mnem == 'imul' and len(operands) > 1:
             eoc_range(1, 3)
             if len(operands) == 2:
-                res.append((line, ops[0] + ' *= ' + ops[1]))
+                res.append((line, partial() + ops[0] + ' *= ' + ops[1]))
             else:
-                res.append((line, ops[0] + ' = ' + ops[1] + ' * ' + ops[2]))
+                res.append((line, partial() + ops[0] + ' = ' + ops[1] + ' * ' + ops[2]))
 
         elif mnem in ('mul', 'imul', 'div', 'idiv'):
             eoc(1)
             op = ops[0]
-            regp = op[0]
+            regp = op[-3:-2]
             u = 'u' * (mnem[0] != 'i')
             o = '*' if mnem.endswith('mul') else '/'
-            res.append((line, f'{regp}dx:{regp}ax {u}{o}= {op}'))
+            res.append((line, f'{partial()}{regp}dx:{regp}ax {u}{o}= {op}'))
 
         elif mnem in ('adc', 'sbb'):
             eoc(2)
-            res.append((line, ops[0] + ' ' + ('+' if mnem == 'adc' else '-') + '= ' + ops[1] + ' + cf'))
+            res.append((line, partial() + ops[0] + ' ' + ('+' if mnem == 'adc' else '-') + '= ' + ops[1] + ' + cf'))
 
         elif mnem in ('rcl', 'rcr'):
             eoc(2)
-            res.append((line, 'cf:' + ops[0] + ' (' + ('<<' if mnem == 'rcl' else '>>') + ')= ' + ops[1]))
+            res.append((line, partial() + 'cf:' + ops[0] + ' (' + ('<<' if mnem == 'rcl' else '>>') + ')= ' + ops[1]))
 
         elif mnem == 'shld':
             eoc(3)
-            res.append((line, f'{ops[0]}:_ = {ops[0]}:{ops[1]} << {ops[2]}'))
+            res.append((line, f'{partial()}{ops[0]}:_ = {ops[0]}:{ops[1]} << {ops[2]}'))
 
         elif mnem == 'shrd':
             eoc(3)
-            res.append((line, f'_:{ops[0]} = {ops[1]}:{ops[0]} >> {ops[2]}'))
+            res.append((line, f'{partial()}_:{ops[0]} = {ops[1]}:{ops[0]} >> {ops[2]}'))
 
         elif mnem == 'bt':
             eoc(2)
