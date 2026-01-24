@@ -47,7 +47,7 @@ $LN11@correlatio:
     vxorps  xmm3, xmm3, xmm3            ; xmm3s v|=| 0
     vcvtsi2sd xmm3, xmm3, r8d           ; xmm3d v= float(r8i)
     vsubsd  xmm6, xmm1, xmm0            ; xmm6d v= xmm1 - xmm0
-    call    sqrt                        ; sqrt(...)
+    call    sqrt                        ; call sqrt(...)
     vdivsd  xmm0, xmm6, xmm0            ; xmm0d v= xmm6 / xmm0
     add rsp, 104                        ; rsp += 104
     ret 0
