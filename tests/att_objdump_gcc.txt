@@ -33,7 +33,7 @@ Errors:
         prefetcht0 BYTE PTR [rax]
         bswap  eax
 
-        call 40387b <calloc@plt+0x7fb>(...)
+        call 40387b <calloc@plt+0x7fb>(?) -> ?
         != : 4043c4 <calloc@plt+0x1344>
         rax = 8bytes[20h]
         8bytes[30h] = 0
@@ -42,7 +42,7 @@ Errors:
         byte[rbp-168h] = 1 if != else 0
         byte[es:rdi] = byte[ds:rsi]
         rax = 8bytes[fs:28h]
-        call rax(...)
+        call rax(?) -> ?
         4bytes[rsp+48h] <<= 1
         esi |=| mask(xmm0b)
         prefetchnta byte[r15]

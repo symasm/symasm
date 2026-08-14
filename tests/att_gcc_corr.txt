@@ -239,7 +239,7 @@ double correlation_ref(const double x[], const double y[], int n)
         .cfi_def_cfa_offset 32
         8bytes[rsp+8] = xmm3d
         8bytes[rsp] = xmm1d
-        call sqrt@PLT(...)
+        call sqrt@PLT(?) -> ?
         xmm3d = 8bytes[rsp+8]
         xmm1d = 8bytes[rsp]
         rsp += 24
@@ -733,7 +733,7 @@ double correlation_ref(const double x[], const double y[], int n)
         rsp -= 40
         8bytes[rbp-32] v= xmm2d
         8bytes[rbp-24] v= xmm8d
-        call sqrt@PLT(...)
+        call sqrt@PLT(?) -> ?
         xmm2d v= 8bytes[rbp-32]
         xmm8d v= 8bytes[rbp-24]
         rsp += 40

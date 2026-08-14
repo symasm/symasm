@@ -443,7 +443,7 @@ def translate_to_symasm_impl(lang, tokens, source: str, errors: List[Error] = No
 
         elif mnem == 'call':
             eoc(1)
-            res.append((line, 'call ' + ops[0] + '(...)'))
+            res.append((line, 'call ' + ops[0] + '(?) -> ?'))
 
         elif mnem == 'jmp':
             eoc(1)

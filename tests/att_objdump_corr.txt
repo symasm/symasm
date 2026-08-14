@@ -211,7 +211,7 @@ double correlation_ref(const double x[], const double y[], int n)
         rsp -= 18h
         8bytes[rsp+8] = xmm3d
         8bytes[rsp] = xmm1d
-        call f2 <_Z15correlation_refPKdS0_i+0xf2>(...)
+        call f2 <_Z15correlation_refPKdS0_i+0xf2>(?) -> ?
         xmm3d = 8bytes[rsp+8]
         xmm1d = 8bytes[rsp]
         rsp += 18h
@@ -652,7 +652,7 @@ double correlation_ref(const double x[], const double y[], int n)
         rsp -= 28h
         8bytes[rbp-20h] v= xmm2d
         8bytes[rbp-18h] v= xmm8d
-        call 22f <correlation_ref+0x22f>(...)
+        call 22f <correlation_ref+0x22f>(?) -> ?
         xmm2d v= 8bytes[rbp-20h]
         xmm8d v= 8bytes[rbp-18h]
         rsp += 28h
